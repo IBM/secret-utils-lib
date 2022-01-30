@@ -17,13 +17,12 @@
 package authenticator
 
 import (
-	"IBM/secret-utils-lib/pkg/utils"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"bufio"
 	"errors"
 	"os"
 	"strings"
 
-	// "github.com/GunaKKIBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -86,8 +85,6 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Successfully initialized authenticator")
 	return authenticator, credentialType, nil
 }
-
-func readCredentials()
 
 // parseCredentials: accepts an array of strings of the form "<key>=<value>" and parses/filters them to
 // a map of credentials.

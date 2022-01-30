@@ -17,10 +17,8 @@
 package authenticator
 
 import (
-	//"github.com/GunaKKIBM/secret-utils-lib/pkg/token"
-	//"github.com/GunaKKIBM/secret-utils-lib/pkg/utils"
-	"IBM/secret-utils-lib/pkg/token"
-	"IBM/secret-utils-lib/pkg/utils"
+	"github.com/IBM/secret-utils-lib/pkg/token"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"strings"
 
 	"github.com/IBM/go-sdk-core/v5/core"
@@ -71,18 +69,8 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
-		aa.logger.Error("Error fetching fresh token", zap.Error(err))
-		if strings.Contains(err.Error(), utils.APIKeyNotFound) || strings.Contains(err.Error(), utils.UserNotFound) {
-			apikey, err := readSecret(IAM)
-			if err != nil {
-				aa.logger.Error("Error reading api key", zap.Error(err))
-				return "", tokenlifetime, err
-			}
-			aa.SetSecret(apikey)
-			return aa.GetToken(freshTokenRequired)
-		} else {
-			return "", tokenlifetime, err
-		}
+		aa.logger.Error("Error fetching token", zap.Error(err))
+		return "", tokenlifetime, nil
 	}
 
 	tokenlifetime, err = token.FetchTokenLifeTime(tokenResponse.AccessToken)

@@ -1,4 +1,4 @@
-module secret-utils-lib
+module github.com/IBM/secret-utils-lib
 
 go 1.15
 

@@ -17,11 +17,8 @@
 package authenticator
 
 import (
-	"IBM/secret-utils-lib/pkg/token"
-	"IBM/secret-utils-lib/pkg/utils"
-
-	//"github.com/GunaKKIBM/secret-utils-lib/pkg/token"
-	//"github.com/GunaKKIBM/secret-utils-lib/pkg/utils"
+	"github.com/IBM/secret-utils-lib/pkg/token"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/IBM/go-sdk-core/v5/core"
 	"go.uber.org/zap"
 )
