@@ -86,6 +86,6 @@ func (ca *ComputeIdentityAuthenticator) GetSecret() string {
 }
 
 // SetSecret ...
-func (aa *ComputeIdentityAuthenticator) SetSecret(secret string) {
+func (ca *ComputeIdentityAuthenticator) SetSecret(secret string) {
 	ca.authenticator.IAMProfileID = secret
 }
