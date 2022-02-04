@@ -17,9 +17,9 @@
 package authenticator
 
 import (
-	"github.com/IBM/secret-utils-lib/pkg/token"
-	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/IBM/go-sdk-core/v5/core"
+	"github.com/IBM/secret-utils-lib/pkg/token"
+	//"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -51,32 +51,40 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		ca.logger.Info("Retreiving existing token")
 		iamtoken, err = ca.authenticator.GetToken()
 		if err != nil {
-			ca.logger.Error("Error fetching iam token", zap.Error(err))
-			return "", tokenlifetime, err
+			ca.logger.Error("Error fetching token", zap.Error(err))
+			// If the error is w.r.t invalid profile ID (which can happen when api key is reset)
+			// retry reads the credentials again and fetches the iam token with new credentials
+			err = retry(ca, ca.logger, PODIDENTITY, err)
+			if err != nil {
+				return "", tokenlifetime, err
+			}
 		}
-		tokenlifetime, err = token.FetchTokenLifeTime(iamtoken)
-		if err != nil {
-			ca.logger.Error("Error fetching token lifetime", zap.Error(err))
-			return "", tokenlifetime, err
-		}
-		if tokenlifetime > utils.TokenExpirydiff {
-			ca.logger.Info("Successfully fetched iam token")
+		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
+		if err == nil {
 			return iamtoken, tokenlifetime, nil
 		}
 	}
 
 	tokenResponse, err := ca.authenticator.RequestToken()
 	if err != nil {
-		ca.logger.Error("Error fetching fresh iam token", zap.Error(err))
+		ca.logger.Error("Error fetching token", zap.Error(err))
+		// If the error is w.r.t invalid api key (which can happen when api key is reset)
+		// retry reads the credentials again and fetches the iam token with new credentials
+		err = retry(ca, ca.logger, PODIDENTITY, err)
+		if err != nil {
+			return "", tokenlifetime, err
+		}
+	} else {
+		iamtoken = tokenResponse.AccessToken
+	}
+
+	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
+	if err != nil {
+		ca.logger.Error("Error fetching tokenlifetime", zap.Error(err))
 		return "", tokenlifetime, err
 	}
 
-	tokenlifetime, err = token.FetchTokenLifeTime(tokenResponse.AccessToken)
-	if err != nil {
-		ca.logger.Error("Error fetching token lifetime", zap.Error(err))
-		return "", tokenlifetime, err
-	}
-	ca.logger.Info("Successfully fetched iam token")
+	ca.logger.Info("Successfully fetched IAM token")
 	return tokenResponse.AccessToken, tokenlifetime, nil
 }
 

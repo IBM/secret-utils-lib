@@ -34,4 +34,16 @@ const (
 
 	// ErrProfileIDNotProvided ...
 	ErrProfileIDNotProvided = "Profile ID not provided"
+
+	// APIKeyNotFound ...
+	APIKeyNotFound = "api key could not be found"
+
+	// UserNotFound ...
+	UserNotFound = "user not found or active"
+
+	// ProfileNotFound ...
+	ProfileNotFound = "selected trusted profile not eligible for cr token"
+
+	// ErrChangeInAuthType ...
+	ErrChangeInAuthType = "Change in IBMCLOUD_AUTHTYPE observed"
 )

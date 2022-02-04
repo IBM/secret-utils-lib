@@ -17,13 +17,13 @@
 package authenticator
 
 import (
-	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"bufio"
 	"errors"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
+	"go.uber.org/zap"
 	"os"
 	"strings"
-
-	"go.uber.org/zap"
+	"time"
 )
 
 const (
@@ -35,6 +35,8 @@ const (
 	PODIDENTITY               = "pod-identity"
 )
 
+var defaultSecret string
+
 // Authenticator ...
 type Authenticator interface {
 	GetToken(freshTokenRequired bool) (string, uint64, error)
@@ -45,28 +47,9 @@ type Authenticator interface {
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
 func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
-	credentialFilePath := os.Getenv(IBMCLOUD_CREDENTIALS_FILE)
-	if credentialFilePath == "" {
-		logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined")
-		return nil, "", errors.New(utils.ErrCredentialsFileUndefined)
-	}
-
-	file, err := os.Open(credentialFilePath)
-	if err != nil {
-		logger.Error("Unable to open the defined IBMCLOUD_CREDENTIALS_FILE", zap.String("file path", credentialFilePath))
-		return nil, "", err
-	}
-	defer file.Close()
-
-	// Collect the contents of the credential file in a string array.
-	lines := make([]string, 0)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
 
 	// Parse the file contents into name/value pairs.
-	credentialsmap, err := parseCredentials(lines)
+	credentialsmap, err := parseCredentials(logger)
 	if err != nil {
 		logger.Error("Error parsing credentials", zap.Error(err))
 		return nil, "", err
@@ -76,19 +59,38 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	credentialType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
 	switch credentialType {
 	case IAM:
-		apiKey, _ := credentialsmap[IBMCLOUD_APIKEY]
-		authenticator = NewIamAuthenticator(apiKey, logger)
+		defaultSecret, _ = credentialsmap[IBMCLOUD_APIKEY]
+		authenticator = NewIamAuthenticator(defaultSecret, logger)
 	case PODIDENTITY:
-		profileID, _ := credentialsmap[IBMCLOUD_PROFILEID]
-		authenticator = NewComputeIdentityAuthenticator(profileID, logger)
+		defaultSecret, _ = credentialsmap[IBMCLOUD_PROFILEID]
+		authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 	}
 	logger.Info("Successfully initialized authenticator")
 	return authenticator, credentialType, nil
 }
 
-// parseCredentials: accepts an array of strings of the form "<key>=<value>" and parses/filters them to
+// parseCredentials: reads credentials and parses them into key value pairs
 // a map of credentials.
-func parseCredentials(credentials []string) (map[string]string, error) {
+func parseCredentials(logger *zap.Logger) (map[string]string, error) {
+	credentialFilePath := os.Getenv(IBMCLOUD_CREDENTIALS_FILE)
+	if credentialFilePath == "" {
+		logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined")
+		return nil, errors.New(utils.ErrCredentialsFileUndefined)
+	}
+
+	file, err := os.Open(credentialFilePath)
+	if err != nil {
+		logger.Error("Unable to open the defined IBMCLOUD_CREDENTIALS_FILE", zap.String("file path", credentialFilePath))
+		return nil, err
+	}
+	defer file.Close()
+
+	// Collect the contents of the credential file in a string array.
+	credentials := make([]string, 0)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		credentials = append(credentials, scanner.Text())
+	}
 	if len(credentials) == 0 {
 		return nil, errors.New(utils.ErrCredentialsUndefined)
 	}
@@ -133,4 +135,49 @@ func parseCredentials(credentials []string) (map[string]string, error) {
 	}
 
 	return credentialsmap, nil
+}
+
+// retry ....
+func retry(authenticator Authenticator, logger *zap.Logger, authType string, err error) error {
+	receivedError := err
+	errMsg := strings.ToLower(err.Error())
+	switch authType {
+	case IAM:
+		if !strings.Contains(errMsg, utils.APIKeyNotFound) || !strings.Contains(errMsg, utils.UserNotFound) {
+			return err
+		}
+	case PODIDENTITY:
+		if !strings.Contains(errMsg, utils.ProfileNotFound) {
+			return err
+		}
+	}
+
+	for retryCount := 0; retryCount < utils.MaxRetries; retryCount++ {
+		credentialsmap, err := parseCredentials(logger)
+		if err != nil {
+			return err
+		}
+
+		retrievedAuthType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
+		if retrievedAuthType != authType {
+			return errors.New(utils.ErrChangeInAuthType)
+		}
+
+		var secret string
+		switch authType {
+		case IAM:
+			secret, _ = credentialsmap[IBMCLOUD_APIKEY]
+		case PODIDENTITY:
+			secret, _ = credentialsmap[IBMCLOUD_PROFILEID]
+		}
+
+		if secret == defaultSecret {
+			time.Sleep(time.Second * time.Duration(utils.RetryInterval))
+			continue
+		}
+		authenticator.SetSecret(defaultSecret)
+		return nil
+	}
+
+	return receivedError
 }

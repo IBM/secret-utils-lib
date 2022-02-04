@@ -18,13 +18,13 @@ package token
 
 import (
 	"errors"
-	"time"
-
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/golang-jwt/jwt"
+	"time"
 )
 
-// FetchTokenLifeTime fetches token life time of the token
-func FetchTokenLifeTime(tokenString string) (uint64, error) {
+// CheckTokenLifeTime fetches token life time of the token
+func CheckTokenLifeTime(tokenString string) (uint64, error) {
 	var tokenLifeTime uint64
 
 	token, err := parseToken(tokenString)
@@ -42,6 +42,9 @@ func FetchTokenLifeTime(tokenString string) (uint64, error) {
 			return tokenLifeTime, errors.New("unable to find expiry time of token")
 		}
 		tokenLifeTime = uint64(expiryTime.(float64)) - uint64(currentTime)
+		if tokenLifeTime < utils.TokenExpirydiff {
+			return tokenLifeTime, errors.New("token life time is lesse than expected value")
+		}
 		return tokenLifeTime, nil
 	}
 	return tokenLifeTime, errors.New("unable to fetch token claims")

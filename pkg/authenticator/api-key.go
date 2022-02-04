@@ -18,7 +18,7 @@ package authenticator
 
 import (
 	"github.com/IBM/secret-utils-lib/pkg/token"
-	"github.com/IBM/secret-utils-lib/pkg/utils"
+	//"github.com/IBM/secret-utils-lib/pkg/utils"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	"go.uber.org/zap"
@@ -53,15 +53,15 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		iamtoken, err = aa.authenticator.GetToken()
 		if err != nil {
 			aa.logger.Error("Error fetching token", zap.Error(err))
-			return "", tokenlifetime, err
+			// If the error is w.r.t invalid api key (which can happen when api key is reset)
+			// retry reads the credentials again and fetches the iam token with new credentials
+			err = retry(aa, aa.logger, IAM, err)
+			if err != nil {
+				return "", tokenlifetime, err
+			}
 		}
-		tokenlifetime, err = token.FetchTokenLifeTime(iamtoken)
-		if err != nil {
-			aa.logger.Error("Error fetching tokenlifetime", zap.Error(err))
-			return "", tokenlifetime, err
-		}
-		if tokenlifetime > utils.TokenExpirydiff {
-			aa.logger.Info("Successfully fetched IAM token")
+		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
+		if err == nil {
 			return iamtoken, tokenlifetime, nil
 		}
 	}
@@ -69,14 +69,22 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
 		aa.logger.Error("Error fetching token", zap.Error(err))
-		return "", tokenlifetime, nil
+		// If the error is w.r.t invalid api key (which can happen when api key is reset)
+		// retry reads the credentials again and fetches the iam token with new credentials
+		err = retry(aa, aa.logger, IAM, err)
+		if err != nil {
+			return "", tokenlifetime, err
+		}
+	} else {
+		iamtoken = tokenResponse.AccessToken
 	}
 
-	tokenlifetime, err = token.FetchTokenLifeTime(tokenResponse.AccessToken)
+	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
 		aa.logger.Error("Error fetching tokenlifetime", zap.Error(err))
 		return "", tokenlifetime, err
 	}
+
 	aa.logger.Info("Successfully fetched IAM token")
 	return tokenResponse.AccessToken, tokenlifetime, nil
 }
