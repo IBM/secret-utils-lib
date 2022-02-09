@@ -19,6 +19,7 @@ package authenticator
 import (
 	"bufio"
 	"errors"
+	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 	"os"
@@ -49,35 +50,46 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// Parse the file contents into name/value pairs.
-	credentialsmap, err := parseCredentials(logger)
+	credentialFilePath := os.Getenv(IBMCLOUD_CREDENTIALS_FILE)
+	if credentialFilePath != "" {
+		credentialsmap, err := parseCredentials(logger, credentialFilePath)
+		if err != nil {
+			logger.Error("Error parsing credentials", zap.Error(err))
+			return nil, "", err
+		}
+		var authenticator Authenticator
+		credentialType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
+		switch credentialType {
+		case IAM:
+			defaultSecret, _ = credentialsmap[IBMCLOUD_APIKEY]
+			authenticator = NewIamAuthenticator(defaultSecret, logger)
+		case PODIDENTITY:
+			defaultSecret, _ = credentialsmap[IBMCLOUD_PROFILEID]
+			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
+		}
+		logger.Info("Successfully initialized authenticator")
+		return authenticator, credentialType, nil
+	}
+
+	logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined")
+	conf, err := config.ReadConfig(logger)
 	if err != nil {
-		logger.Error("Error parsing credentials", zap.Error(err))
+		logger.Error("Error reading secret config", zap.Error(err))
 		return nil, "", err
 	}
 
-	var authenticator Authenticator
-	credentialType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
-	switch credentialType {
-	case IAM:
-		defaultSecret, _ = credentialsmap[IBMCLOUD_APIKEY]
-		authenticator = NewIamAuthenticator(defaultSecret, logger)
-	case PODIDENTITY:
-		defaultSecret, _ = credentialsmap[IBMCLOUD_PROFILEID]
-		authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
+	if conf.VPCProviderConfig.G2APIKey == "" {
+		logger.Error("Empty api key", zap.Error(err))
+		return nil, "", utils.ErrEmptyAPIKey
 	}
-	logger.Info("Successfully initialized authenticator")
-	return authenticator, credentialType, nil
+	defaultSecret = conf.VPCProviderConfig.G2APIKey
+	authenticator = NewIamAuthenticator(defaultSecret, logger)
+	return authenticator, IAM, nil
 }
 
 // parseCredentials: reads credentials and parses them into key value pairs
 // a map of credentials.
-func parseCredentials(logger *zap.Logger) (map[string]string, error) {
-	credentialFilePath := os.Getenv(IBMCLOUD_CREDENTIALS_FILE)
-	if credentialFilePath == "" {
-		logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined")
-		return nil, errors.New(utils.ErrCredentialsFileUndefined)
-	}
-
+func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string]string, error) {
 	file, err := os.Open(credentialFilePath)
 	if err != nil {
 		logger.Error("Unable to open the defined IBMCLOUD_CREDENTIALS_FILE", zap.String("file path", credentialFilePath))

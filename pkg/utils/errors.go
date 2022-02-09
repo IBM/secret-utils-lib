@@ -46,4 +46,10 @@ const (
 
 	// ErrChangeInAuthType ...
 	ErrChangeInAuthType = "Change in IBMCLOUD_AUTHTYPE observed"
+
+	// ErrSecretConfigPathUndefined ...
+	ErrSecretConfigPathUndefined = "SECRET_CONFIG_PATH undefined"
+
+	// ErrEmptyAPIKey
+	ErrEmptyAPIKey = "Empty API key"
 )
