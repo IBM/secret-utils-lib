@@ -42,7 +42,7 @@ func NewComputeIdentityAuthenticator(profileID string, logger *zap.Logger) *Comp
 
 // GetToken ...
 func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (string, uint64, error) {
-	ca.logger.Info("Fetching token using compute identity authenticator")
+	ca.logger.Info("Fetching IAM token using compute identity authenticator")
 	var iamtoken string
 	var err error
 	var tokenlifetime uint64
@@ -51,13 +51,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		ca.logger.Info("Retreiving existing token")
 		iamtoken, err = ca.authenticator.GetToken()
 		if err != nil {
-			ca.logger.Error("Error fetching token", zap.Error(err))
-			// If the error is w.r.t invalid profile ID (which can happen when api key is reset)
-			// retry reads the credentials again and fetches the iam token with new credentials
-			err = retry(ca, ca.logger, PODIDENTITY, err)
-			if err != nil {
-				return "", tokenlifetime, err
-			}
+			return "", tokenlifetime, err
 		}
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
@@ -67,25 +61,19 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 
 	tokenResponse, err := ca.authenticator.RequestToken()
 	if err != nil {
-		ca.logger.Error("Error fetching token", zap.Error(err))
-		// If the error is w.r.t invalid api key (which can happen when api key is reset)
-		// retry reads the credentials again and fetches the iam token with new credentials
-		err = retry(ca, ca.logger, PODIDENTITY, err)
-		if err != nil {
-			return "", tokenlifetime, err
-		}
-	} else {
-		iamtoken = tokenResponse.AccessToken
+		return "", tokenlifetime, err
+	}
+	if tokenResponse == nil {
+		return "", tokenlifetime, errors.New(utils.ErrUndefinedError)
 	}
 
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
-		ca.logger.Error("Error fetching tokenlifetime", zap.Error(err))
 		return "", tokenlifetime, err
 	}
 
 	ca.logger.Info("Successfully fetched IAM token")
-	return tokenResponse.AccessToken, tokenlifetime, nil
+	return iamtoken, tokenlifetime, nil
 }
 
 // GetSecret ...

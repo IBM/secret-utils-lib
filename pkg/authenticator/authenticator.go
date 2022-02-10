@@ -27,15 +27,7 @@ import (
 	"time"
 )
 
-const (
-	IBMCLOUD_CREDENTIALS_FILE = "IBMCLOUD_CREDENTIALS_FILE"
-	IBMCLOUD_AUTHTYPE         = "IBMCLOUD_AUTHTYPE"
-	IBMCLOUD_APIKEY           = "IBMCLOUD_APIKEY"
-	IBMCLOUD_PROFILEID        = "IBMCLOUD_PROFILEID"
-	IAM                       = "iam"
-	PODIDENTITY               = "pod-identity"
-)
-
+// defaultSecret ...
 var defaultSecret string
 
 // Authenticator ...
@@ -50,7 +42,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// Parse the file contents into name/value pairs.
-	credentialFilePath := os.Getenv(IBMCLOUD_CREDENTIALS_FILE)
+	credentialFilePath := os.Getenv(utils.IBMCLOUD_CREDENTIALS_FILE)
 	if credentialFilePath != "" {
 		credentialsmap, err := parseCredentials(logger, credentialFilePath)
 		if err != nil {
@@ -58,13 +50,13 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 			return nil, "", err
 		}
 		var authenticator Authenticator
-		credentialType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
+		credentialType, _ := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 		switch credentialType {
 		case IAM:
-			defaultSecret, _ = credentialsmap[IBMCLOUD_APIKEY]
+			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_APIKEY]
 			authenticator = NewIamAuthenticator(defaultSecret, logger)
 		case PODIDENTITY:
-			defaultSecret, _ = credentialsmap[IBMCLOUD_PROFILEID]
+			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_PROFILEID]
 			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 		}
 		logger.Info("Successfully initialized authenticator")
@@ -130,18 +122,18 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 		return nil, errors.New(utils.ErrAuthTypeUndefined)
 	}
 
-	if credentialType != IAM && credentialType != PODIDENTITY {
+	if credentialType != utils.IAM && credentialType != utils.PODIDENTITY {
 		return nil, errors.New(utils.ErrUnknownCredentialType)
 	}
 
 	if credentialType == IAM {
-		if secret, ok := credentialsmap[IBMCLOUD_APIKEY]; !ok || secret == "" {
+		if secret, ok := credentialsmap[utils.IBMCLOUD_APIKEY]; !ok || secret == "" {
 			return nil, errors.New(utils.ErrAPIKeyNotProvided)
 		}
 	}
 
 	if credentialType == PODIDENTITY {
-		if secret, ok := credentialsmap[IBMCLOUD_PROFILEID]; !ok || secret == "" {
+		if secret, ok := credentialsmap[utils.IBMCLOUD_PROFILEID]; !ok || secret == "" {
 			return nil, errors.New(utils.ErrProfileIDNotProvided)
 		}
 	}
@@ -149,6 +141,7 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 	return credentialsmap, nil
 }
 
+/*
 // retry ....
 func retry(authenticator Authenticator, logger *zap.Logger, authType string, err error) error {
 	receivedError := err
@@ -193,3 +186,4 @@ func retry(authenticator Authenticator, logger *zap.Logger, authType string, err
 
 	return receivedError
 }
+*/

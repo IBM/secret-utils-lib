@@ -52,13 +52,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		aa.logger.Info("Retreiving existing token")
 		iamtoken, err = aa.authenticator.GetToken()
 		if err != nil {
-			aa.logger.Error("Error fetching token", zap.Error(err))
-			// If the error is w.r.t invalid api key (which can happen when api key is reset)
-			// retry reads the credentials again and fetches the iam token with new credentials
-			err = retry(aa, aa.logger, IAM, err)
-			if err != nil {
-				return "", tokenlifetime, err
-			}
+			return "", tokenlifetime, err
 		}
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
@@ -68,25 +62,19 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
-		aa.logger.Error("Error fetching token", zap.Error(err))
-		// If the error is w.r.t invalid api key (which can happen when api key is reset)
-		// retry reads the credentials again and fetches the iam token with new credentials
-		err = retry(aa, aa.logger, IAM, err)
-		if err != nil {
-			return "", tokenlifetime, err
-		}
-	} else {
-		iamtoken = tokenResponse.AccessToken
+		return "", tokenlifetime, err
+	}
+	if tokenResponse == nil {
+		return "", tokenlifetime, errors.New(utils.ErrUndefinedError)
 	}
 
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
-		aa.logger.Error("Error fetching tokenlifetime", zap.Error(err))
 		return "", tokenlifetime, err
 	}
 
 	aa.logger.Info("Successfully fetched IAM token")
-	return tokenResponse.AccessToken, tokenlifetime, nil
+	return iamtoken, tokenlifetime, nil
 }
 
 // GetSecret ...
