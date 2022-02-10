@@ -17,10 +17,10 @@
 package authenticator
 
 import (
-	"github.com/IBM/secret-utils-lib/pkg/token"
-	//"github.com/IBM/secret-utils-lib/pkg/utils"
-
+	"errors"
 	"github.com/IBM/go-sdk-core/v5/core"
+	"github.com/IBM/secret-utils-lib/pkg/token"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -65,7 +65,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		return "", tokenlifetime, err
 	}
 	if tokenResponse == nil {
-		return "", tokenlifetime, errors.New(utils.ErrUndefinedError)
+		return "", tokenlifetime, errors.New(utils.ErrEmptyTokenResponse)
 	}
 
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)

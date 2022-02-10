@@ -52,4 +52,7 @@ const (
 
 	// ErrEmptyAPIKey
 	ErrEmptyAPIKey = "Empty API key"
+
+	// ErrEmptyTokenResponse ...
+	ErrEmptyTokenResponse = "Empty token response received"
 )

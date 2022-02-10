@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 
 	"path/filepath"
@@ -124,7 +125,7 @@ type APIConfig struct {
 func ReadConfig(logger *zap.Logger) (*Config, error) {
 	var confPathDir string
 	if confPathDir = os.Getenv("SECRET_CONFIG_PATH"); confPathDir == "" {
-		return nil, utils.ErrSecretConfigPathUndefined
+		return nil, errors.New(utils.ErrSecretConfigPathUndefined)
 	}
 
 	configPath := filepath.Join(confPathDir, configFileName)

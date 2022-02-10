@@ -19,12 +19,12 @@ package authenticator
 import (
 	"bufio"
 	"errors"
+	"os"
+	"strings"
+
 	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
-	"os"
-	"strings"
-	"time"
 )
 
 // defaultSecret ...
@@ -52,10 +52,10 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 		var authenticator Authenticator
 		credentialType, _ := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 		switch credentialType {
-		case IAM:
+		case utils.IAM:
 			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_APIKEY]
 			authenticator = NewIamAuthenticator(defaultSecret, logger)
-		case PODIDENTITY:
+		case utils.PODIDENTITY:
 			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_PROFILEID]
 			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 		}
@@ -70,13 +70,13 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 		return nil, "", err
 	}
 
-	if conf.VPCProviderConfig.G2APIKey == "" {
+	if conf.VPC.G2APIKey == "" {
 		logger.Error("Empty api key", zap.Error(err))
-		return nil, "", utils.ErrEmptyAPIKey
+		return nil, "", errors.New(utils.ErrEmptyAPIKey)
 	}
-	defaultSecret = conf.VPCProviderConfig.G2APIKey
-	authenticator = NewIamAuthenticator(defaultSecret, logger)
-	return authenticator, IAM, nil
+	defaultSecret = conf.VPC.G2APIKey
+	authenticator := NewIamAuthenticator(defaultSecret, logger)
+	return authenticator, utils.IAM, nil
 }
 
 // parseCredentials: reads credentials and parses them into key value pairs
@@ -117,7 +117,7 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 	}
 
 	// validating credentials
-	credentialType, ok := credentialsmap[IBMCLOUD_AUTHTYPE]
+	credentialType, ok := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 	if !ok {
 		return nil, errors.New(utils.ErrAuthTypeUndefined)
 	}
@@ -126,13 +126,13 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 		return nil, errors.New(utils.ErrUnknownCredentialType)
 	}
 
-	if credentialType == IAM {
+	if credentialType == utils.IAM {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_APIKEY]; !ok || secret == "" {
 			return nil, errors.New(utils.ErrAPIKeyNotProvided)
 		}
 	}
 
-	if credentialType == PODIDENTITY {
+	if credentialType == utils.PODIDENTITY {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_PROFILEID]; !ok || secret == "" {
 			return nil, errors.New(utils.ErrProfileIDNotProvided)
 		}
