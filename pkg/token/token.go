@@ -18,9 +18,10 @@ package token
 
 import (
 	"errors"
+	"time"
+
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/golang-jwt/jwt"
-	"time"
 )
 
 // CheckTokenLifeTime checks whether the lifetime of token is valid or not

@@ -21,11 +21,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
-	"os"
-	"strings"
 )
 
 // defaultSecret is the default api key or profile ID fetched from the secret
