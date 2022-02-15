@@ -23,13 +23,14 @@ import (
 	"time"
 )
 
-// CheckTokenLifeTime fetches token life time of the token
+// CheckTokenLifeTime checks whether the lifetime of token is valid or not
+// and returns life time of the token
 func CheckTokenLifeTime(tokenString string) (uint64, error) {
 	var tokenLifeTime uint64
 
 	token, err := parseToken(tokenString)
 	if err != nil {
-		return tokenLifeTime, errors.New("error parsing the token")
+		return tokenLifeTime, err
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
@@ -43,7 +44,7 @@ func CheckTokenLifeTime(tokenString string) (uint64, error) {
 		}
 		tokenLifeTime = uint64(expiryTime.(float64)) - uint64(currentTime)
 		if tokenLifeTime < utils.TokenExpirydiff {
-			return tokenLifeTime, errors.New("token life time is lesse than expected value")
+			return tokenLifeTime, errors.New("token life time is less than expected value")
 		}
 		return tokenLifeTime, nil
 	}

@@ -6,7 +6,7 @@ import (
 
 	"path/filepath"
 
-	"secret-utils-lib/pkg/utils"
+	"github.com/IBM/secret-utils-lib/pkg/utils"
 
 	"github.com/BurntSushi/toml"
 	"github.com/kelseyhightower/envconfig"
@@ -138,18 +138,18 @@ func ReadConfig(logger *zap.Logger) (*Config, error) {
 	return &conf, err
 }
 
-// parseConfig ...
+// parseConfig parses the config file
 func parseConfig(configPath string, conf *Config, logger *zap.Logger) error {
 	_, err := toml.DecodeFile(configPath, conf)
 	if err != nil {
 		logger.Error("Failed to parse config file", zap.Error(err))
-		return err
+		return utils.Error{Description: "Failed to read config file", BackendError: err.Error()}
 	}
 
 	err = envconfig.Process("", conf)
 	if err != nil {
 		logger.Error("Failed to gather environment config variable", zap.Error(err))
-		return err
+		return utils.Error{Description: "Failed to gather environment variables", BackendError: err.Error()}
 	}
 	return nil
 }

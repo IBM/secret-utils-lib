@@ -17,8 +17,6 @@
 package authenticator
 
 import (
-	"errors"
-
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
 
@@ -51,31 +49,40 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 	var tokenlifetime uint64
 
 	if !freshTokenRequired {
-		ca.logger.Info("Retreiving existing token")
+		ca.logger.Info("Retrieving existing token")
 		iamtoken, err = ca.authenticator.GetToken()
 		if err != nil {
-			return "", tokenlifetime, err
+			ca.logger.Error("Error fetching existing token", zap.Error(err))
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity authenticator", BackendError: err.Error()}
 		}
+
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
+			ca.logger.Info("Fetched iam token and token lifetime successfully")
 			return iamtoken, tokenlifetime, nil
 		}
+		ca.logger.Error("Error fetching token lifetime of existing token", zap.Error(err))
 	}
 
+	ca.logger.Info("Fetching fresh token")
 	tokenResponse, err := ca.authenticator.RequestToken()
 	if err != nil {
-		return "", tokenlifetime, err
+		ca.logger.Error("Error fetching fresh token", zap.Error(err))
+		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
 	}
+
 	if tokenResponse == nil {
-		return "", tokenlifetime, errors.New(utils.ErrEmptyTokenResponse)
+		ca.logger.Error("Token response received is empty")
+		return "", tokenlifetime, utils.Error{Description: utils.ErrEmptyTokenResponse}
 	}
 
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
-		return "", tokenlifetime, err
+		ca.logger.Error("Error fetching token lifetime for new token", zap.Error(err))
+		return "", tokenlifetime, utils.Error{Description: "Error fetching token lifetime", BackendError: err.Error()}
 	}
 
-	ca.logger.Info("Successfully fetched IAM token")
+	ca.logger.Info("Successfully fetched IAM token and token lifetime")
 	return iamtoken, tokenlifetime, nil
 }
 

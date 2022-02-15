@@ -17,7 +17,6 @@
 package authenticator
 
 import (
-	"errors"
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
@@ -49,31 +48,41 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	var tokenlifetime uint64
 
 	if !freshTokenRequired {
-		aa.logger.Info("Retreiving existing token")
+		aa.logger.Info("Request received to fetch existing token")
 		iamtoken, err = aa.authenticator.GetToken()
 		if err != nil {
-			return "", tokenlifetime, err
+			aa.logger.Error("Error fetching existing token", zap.Error(err))
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 		}
+
+		// Fetching token life time
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
+			aa.logger.Info("Fetched iam token and token lifetime successfully")
 			return iamtoken, tokenlifetime, nil
 		}
+		aa.logger.Error("Error fetching token lifetime of existing token", zap.Error(err))
 	}
 
+	aa.logger.Info("Fetching fresh token")
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
-		return "", tokenlifetime, err
+		aa.logger.Error("Error fetching fresh token", zap.Error(err))
+		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 	}
+
 	if tokenResponse == nil {
-		return "", tokenlifetime, errors.New(utils.ErrEmptyTokenResponse)
+		aa.logger.Error("Token response received is empty")
+		return "", tokenlifetime, utils.Error{Description: utils.ErrEmptyTokenResponse}
 	}
 
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
-		return "", tokenlifetime, err
+		aa.logger.Error("Error fetching token lifetime for new token", zap.Error(err))
+		return "", tokenlifetime, utils.Error{Description: "Error fetching token lifetime", BackendError: err.Error()}
 	}
 
-	aa.logger.Info("Successfully fetched IAM token")
+	aa.logger.Info("Successfully fetched IAM token and token lifetime")
 	return iamtoken, tokenlifetime, nil
 }
 

@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
+// Package authenticator ...
 package authenticator
 
 import (
 	"bufio"
 	"errors"
-	"os"
-	"strings"
-
+	"fmt"
 	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
+	"os"
+	"strings"
 )
 
-// defaultSecret ...
+// defaultSecret is the default api key or profile ID fetched from the secret
 var defaultSecret string
 
 // Authenticator ...
@@ -46,7 +47,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	if credentialFilePath != "" {
 		credentialsmap, err := parseCredentials(logger, credentialFilePath)
 		if err != nil {
-			logger.Error("Error parsing credentials", zap.Error(err))
+			logger.Error("Error parsing credentials in IBMCLOUD_CREDENTIALS_FILE", zap.Error(err))
 			return nil, "", err
 		}
 		var authenticator Authenticator
@@ -63,7 +64,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 		return authenticator, credentialType, nil
 	}
 
-	logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined")
+	logger.Error("IBMCLOUD_CREDENTIALS_FILE undefined, trying to read storage secret store")
 	conf, err := config.ReadConfig(logger)
 	if err != nil {
 		logger.Error("Error reading secret config", zap.Error(err))
@@ -71,21 +72,24 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	}
 
 	if conf.VPC.G2APIKey == "" {
-		logger.Error("Empty api key", zap.Error(err))
-		return nil, "", errors.New(utils.ErrEmptyAPIKey)
+		logger.Error("Empty api key read from the secret", zap.Error(err))
+		return nil, "", errors.New(utils.ErrAPIKeyNotProvided)
 	}
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
+	logger.Info("Successfully initialized authenticator")
 	return authenticator, utils.IAM, nil
 }
 
 // parseCredentials: reads credentials and parses them into key value pairs
 // a map of credentials.
 func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string]string, error) {
+	logger.Info("Parsing credentials", zap.String("Credential file path", credentialFilePath))
+
 	file, err := os.Open(credentialFilePath)
 	if err != nil {
 		logger.Error("Unable to open the defined IBMCLOUD_CREDENTIALS_FILE", zap.String("file path", credentialFilePath))
-		return nil, err
+		return nil, utils.Error{Description: "Unable to open the defined IBMCLOUD_CREDENTIALS_FILE", BackendError: err.Error()}
 	}
 	defer file.Close()
 
@@ -96,6 +100,7 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 		credentials = append(credentials, scanner.Text())
 	}
 	if len(credentials) == 0 {
+		logger.Error("No credentials found", zap.String("Credentials file path", credentialFilePath))
 		return nil, errors.New(utils.ErrCredentialsUndefined)
 	}
 
@@ -113,77 +118,36 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 	}
 
 	if len(credentialsmap) == 0 {
-		return nil, errors.New(utils.ErrCredentialsUndefined)
+		logger.Error("Credentials provided are not in the expected format", zap.String("Credentials file path", credentialFilePath))
+		return nil, errors.New(utils.ErrInvalidCredentialsFormat)
 	}
 
 	// validating credentials
 	credentialType, ok := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 	if !ok {
+		logger.Error("IBMCLOUD_AUTHTYPE is undefined", zap.String("Credentials file path", credentialFilePath))
 		return nil, errors.New(utils.ErrAuthTypeUndefined)
 	}
 
 	if credentialType != utils.IAM && credentialType != utils.PODIDENTITY {
-		return nil, errors.New(utils.ErrUnknownCredentialType)
+		logger.Error("Credential type provided is unknown", zap.String("Credential type", credentialType))
+		return nil, errors.New(fmt.Sprintf(utils.ErrUnknownCredentialType, credentialType))
 	}
 
 	if credentialType == utils.IAM {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_APIKEY]; !ok || secret == "" {
+			logger.Error("API key is empty")
 			return nil, errors.New(utils.ErrAPIKeyNotProvided)
 		}
 	}
 
 	if credentialType == utils.PODIDENTITY {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_PROFILEID]; !ok || secret == "" {
+			logger.Error("Profile ID is empty")
 			return nil, errors.New(utils.ErrProfileIDNotProvided)
 		}
 	}
 
+	logger.Info("Successfully parsed credentials")
 	return credentialsmap, nil
 }
-
-/*
-// retry ....
-func retry(authenticator Authenticator, logger *zap.Logger, authType string, err error) error {
-	receivedError := err
-	errMsg := strings.ToLower(err.Error())
-	switch authType {
-	case IAM:
-		if !strings.Contains(errMsg, utils.APIKeyNotFound) || !strings.Contains(errMsg, utils.UserNotFound) {
-			return err
-		}
-	case PODIDENTITY:
-		if !strings.Contains(errMsg, utils.ProfileNotFound) {
-			return err
-		}
-	}
-
-	for retryCount := 0; retryCount < utils.MaxRetries; retryCount++ {
-		credentialsmap, err := parseCredentials(logger)
-		if err != nil {
-			return err
-		}
-
-		retrievedAuthType, _ := credentialsmap[IBMCLOUD_AUTHTYPE]
-		if retrievedAuthType != authType {
-			return errors.New(utils.ErrChangeInAuthType)
-		}
-
-		var secret string
-		switch authType {
-		case IAM:
-			secret, _ = credentialsmap[IBMCLOUD_APIKEY]
-		case PODIDENTITY:
-			secret, _ = credentialsmap[IBMCLOUD_PROFILEID]
-		}
-
-		if secret == defaultSecret {
-			time.Sleep(time.Second * time.Duration(utils.RetryInterval))
-			continue
-		}
-		authenticator.SetSecret(defaultSecret)
-		return nil
-	}
-
-	return receivedError
-}
-*/
