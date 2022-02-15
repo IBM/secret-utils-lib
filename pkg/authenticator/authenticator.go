@@ -19,7 +19,6 @@ package authenticator
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -74,7 +73,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 
 	if conf.VPC.G2APIKey == "" {
 		logger.Error("Empty api key read from the secret", zap.Error(err))
-		return nil, "", errors.New(utils.ErrAPIKeyNotProvided)
+		return nil, "", utils.Error{Description: utils.ErrAPIKeyNotProvided}
 	}
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
@@ -102,7 +101,7 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 	}
 	if len(credentials) == 0 {
 		logger.Error("No credentials found", zap.String("Credentials file path", credentialFilePath))
-		return nil, errors.New(utils.ErrCredentialsUndefined)
+		return nil, utils.Error{Description: utils.ErrCredentialsUndefined}
 	}
 
 	credentialsmap := make(map[string]string)
@@ -120,32 +119,32 @@ func parseCredentials(logger *zap.Logger, credentialFilePath string) (map[string
 
 	if len(credentialsmap) == 0 {
 		logger.Error("Credentials provided are not in the expected format", zap.String("Credentials file path", credentialFilePath))
-		return nil, errors.New(utils.ErrInvalidCredentialsFormat)
+		return nil, utils.Error{Description: utils.ErrInvalidCredentialsFormat}
 	}
 
 	// validating credentials
 	credentialType, ok := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 	if !ok {
 		logger.Error("IBMCLOUD_AUTHTYPE is undefined", zap.String("Credentials file path", credentialFilePath))
-		return nil, errors.New(utils.ErrAuthTypeUndefined)
+		return nil, utils.Error{Description: utils.ErrAuthTypeUndefined}
 	}
 
 	if credentialType != utils.IAM && credentialType != utils.PODIDENTITY {
 		logger.Error("Credential type provided is unknown", zap.String("Credential type", credentialType))
-		return nil, errors.New(fmt.Sprintf(utils.ErrUnknownCredentialType, credentialType))
+		return nil, utils.Error{Description: fmt.Sprintf(utils.ErrUnknownCredentialType, credentialType)}
 	}
 
 	if credentialType == utils.IAM {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_APIKEY]; !ok || secret == "" {
 			logger.Error("API key is empty")
-			return nil, errors.New(utils.ErrAPIKeyNotProvided)
+			return nil, utils.Error{Description: utils.ErrAPIKeyNotProvided}
 		}
 	}
 
 	if credentialType == utils.PODIDENTITY {
 		if secret, ok := credentialsmap[utils.IBMCLOUD_PROFILEID]; !ok || secret == "" {
 			logger.Error("Profile ID is empty")
-			return nil, errors.New(utils.ErrProfileIDNotProvided)
+			return nil, utils.Error{Description: utils.ErrProfileIDNotProvided}
 		}
 	}
 
