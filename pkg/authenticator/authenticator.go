@@ -51,13 +51,13 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 			return nil, "", err
 		}
 		var authenticator Authenticator
-		credentialType, _ := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
+		credentialType := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 		switch credentialType {
 		case utils.IAM:
-			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_APIKEY]
+			defaultSecret = credentialsmap[utils.IBMCLOUD_APIKEY]
 			authenticator = NewIamAuthenticator(defaultSecret, logger)
 		case utils.PODIDENTITY:
-			defaultSecret, _ = credentialsmap[utils.IBMCLOUD_PROFILEID]
+			defaultSecret = credentialsmap[utils.IBMCLOUD_PROFILEID]
 			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 		}
 		logger.Info("Successfully initialized authenticator")
