@@ -76,6 +76,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		return "", tokenlifetime, utils.Error{Description: utils.ErrEmptyTokenResponse}
 	}
 
+	iamtoken = tokenResponse.AccessToken
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
 		ca.logger.Error("Error fetching token lifetime for new token", zap.Error(err))

@@ -76,6 +76,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		return "", tokenlifetime, utils.Error{Description: utils.ErrEmptyTokenResponse}
 	}
 
+	iamtoken = tokenResponse.AccessToken
 	tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 	if err != nil {
 		aa.logger.Error("Error fetching token lifetime for new token", zap.Error(err))
