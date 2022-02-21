@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 IBM Corp.
+ * Copyright 2022 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,17 +19,13 @@ package authenticator
 
 import (
 	"bufio"
-	"context"
-	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"os"
-	"strings"
 )
 
 // defaultSecret is the default api key or profile ID fetched from the secret
@@ -42,45 +38,9 @@ type Authenticator interface {
 	SetSecret(secret string)
 }
 
-func getClusterConfig(logger *zap.Logger) {
-	k8sConfig, err := rest.InClusterConfig()
-	if err != nil {
-		logger.Error("Error fetching cluster config", zap.Error(err))
-		return
-	}
-
-	clientset, err := kubernetes.NewForConfig(k8sConfig)
-	if err != nil {
-		logger.Error("Error creating client set", zap.Error(err))
-		return
-	}
-	secret, err := clientset.CoreV1().Secrets("kube-system").Get(context.TODO(), "storage-secret-store-test1", v1.GetOptions{})
-	if err != nil {
-		logger.Error("Error fetching secret", zap.Error(err))
-		return
-	}
-	logger.Info("Printing secret")
-	fmt.Println(secret)
-	byteData, ok := secret.Data["slclient.toml"]
-	if !ok {
-		logger.Error("Data not found")
-		return
-	}
-
-	data, err := base64.StdEncoding.DecodeString(string(byteData))
-	if err != nil {
-		logger.Error("Error encoding", zap.Error(err))
-		return
-	}
-
-	logger.Info("Data decoded", zap.String("Data", string(data)))
-
-}
-
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
 func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
-	getClusterConfig(logger)
 	// Parse the file contents into name/value pairs.
 	credentialFilePath := os.Getenv(utils.IBMCLOUD_CREDENTIALS_FILE)
 	if credentialFilePath != "" {

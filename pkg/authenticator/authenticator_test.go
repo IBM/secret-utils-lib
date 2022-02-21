@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 IBM Corp.
+ * Copyright 2022 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,13 +109,13 @@ func TestNewAuthenticator(t *testing.T) {
 
 	for _, testcase := range testcases {
 		t.Run(testcase.testcasename, func(t *testing.T) {
-			pwd, err := os.Getwd()
+			pwd, _ := os.Getwd()
 			if testcase.ibmcloudCredentialsPath != "" {
-				err = os.Setenv("IBMCLOUD_CREDENTIALS_FILE", filepath.Join(pwd, "..", "..", testcase.ibmcloudCredentialsPath))
+				_ = os.Setenv("IBMCLOUD_CREDENTIALS_FILE", filepath.Join(pwd, "..", "..", testcase.ibmcloudCredentialsPath))
 				defer os.Unsetenv("IBMCLOUD_CREDENTIALS_FILE")
 			}
 			if testcase.secretconfigpath != "" {
-				err = os.Setenv("SECRET_CONFIG_PATH", filepath.Join(pwd, "..", "..", testcase.secretconfigpath))
+				_ = os.Setenv("SECRET_CONFIG_PATH", filepath.Join(pwd, "..", "..", testcase.secretconfigpath))
 				defer os.Unsetenv("SECRET_CONFIG_PATH")
 			}
 			_, _, err = NewAuthenticator(logger)
