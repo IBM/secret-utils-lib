@@ -1,6 +1,6 @@
 module github.com/IBM/secret-utils-lib
 
-go 1.15
+go 1.16
 
 require (
 	github.com/BurntSushi/toml v1.0.0
@@ -11,5 +11,6 @@ require (
 	go.uber.org/zap v1.20.0
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.27.1
-	k8s.io/client-go v0.22.7
+	k8s.io/apimachinery v0.23.3
+	k8s.io/client-go v0.23.3
 )
