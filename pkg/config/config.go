@@ -17,10 +17,6 @@
 package config
 
 import (
-	"os"
-
-	"path/filepath"
-
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 
 	"github.com/BurntSushi/toml"
@@ -136,35 +132,22 @@ type APIConfig struct {
 	PassthroughSecret string `toml:"PassthroughSecret" json:"-"`
 }
 
-//ReadConfig loads the config from file
-func ReadConfig(logger *zap.Logger) (*Config, error) {
-	var confPathDir string
-	if confPathDir = os.Getenv("SECRET_CONFIG_PATH"); confPathDir == "" {
-		return nil, utils.Error{Description: utils.ErrSecretConfigPathUndefined}
-	}
-
-	configPath := filepath.Join(confPathDir, configFileName)
-	// Parse config file
-	conf := Config{
-		IKS: &IKSConfig{}, // IKS block may not be populated in secrete toml. Make sure its not nil
-	}
-	logger.Info("parsing conf file", zap.String("confpath", configPath))
-	err := parseConfig(configPath, &conf, logger)
-	return &conf, err
-}
-
-// parseConfig parses the config file
-func parseConfig(configPath string, conf *Config, logger *zap.Logger) error {
-	_, err := toml.DecodeFile(configPath, conf)
+// ParseConfig loads the config from file
+func ParseConfig(logger *zap.Logger, data string) (*Config, error) {
+	logger.Info("Parsing config")
+	configData := new(Config)
+	_, err := toml.Decode(data, configData)
 	if err != nil {
-		logger.Error("Failed to parse config file", zap.Error(err))
-		return utils.Error{Description: "Failed to read config file", BackendError: err.Error()}
+		logger.Error("Failed to parse config", zap.Error(err))
+		return nil, utils.Error{Description: "Failed to parse config", BackendError: err.Error()}
 	}
 
-	err = envconfig.Process("", conf)
+	err = envconfig.Process("", configData)
 	if err != nil {
 		logger.Error("Failed to gather environment config variable", zap.Error(err))
-		return utils.Error{Description: "Failed to gather environment variables", BackendError: err.Error()}
+		return nil, utils.Error{Description: "Failed to gather environment variables", BackendError: err.Error()}
 	}
-	return nil
+
+	logger.Info("Successfully parsed config")
+	return configData, nil
 }
