@@ -41,8 +41,12 @@ type Authenticator interface {
 func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
-	secretData, err := k8s_utils.GetSecretData(utils.IBMCLOUD_CREDENTIALS_SECRET, utils.CLOUD_PROVIDER_ENV, logger)
-	if err == nil {
+	secretData, secretname, err := k8s_utils.GetSecretData(logger)
+	if err != nil {
+		logger.Error("Error fetching secret", zap.Error(err))
+		return nil, "", err
+	}
+	if secretname == utils.IBMCLOUD_CREDENTIALS_SECRET {
 		credentialsmap, err := parseIBMCloudCredentials(logger, secretData)
 		if err != nil {
 			logger.Error("Error parsing credentials", zap.Error(err))
@@ -62,13 +66,6 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 		return authenticator, credentialType, nil
 	}
 
-	logger.Error("Unable to fetch secret ibm-cloud-credentials", zap.Error(err))
-	secretData, err = k8s_utils.GetSecretData(utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE, logger)
-	if err != nil {
-		logger.Error("Error reading secret", zap.Error(err))
-		return nil, "", err
-	}
-
 	conf, err := config.ParseConfig(logger, secretData)
 	if err != nil {
 		logger.Error("Error parsing config", zap.Error(err))
@@ -83,7 +80,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
 	logger.Info("Successfully initialized authenticator")
-	return authenticator, utils.IAM, nil
+	return authenticator, utils.DEFAULT, nil
 }
 
 // parseIBMCloudCredentials: parses the given data into key value pairs
