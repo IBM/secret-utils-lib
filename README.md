@@ -20,3 +20,7 @@ GetSecret() string
 SetSecret(secret string)
 ```
 
+### Pre requisites
+
+- A k8s secret must be present in the same namespace where the pod (the application in which this code is used) is deployed.
+- The secrets format are present in secrets folder - ibm-cloud-credentials.yaml or storage-secret-store.yaml
