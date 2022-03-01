@@ -41,6 +41,7 @@ type Authenticator interface {
 func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
+	// Fetching secret data (ibm-cloud-credentials or storage-secret-store)
 	secretData, secretname, err := k8s_utils.GetSecretData(logger)
 	if err != nil {
 		logger.Error("Error fetching secret", zap.Error(err))
@@ -66,6 +67,7 @@ func NewAuthenticator(logger *zap.Logger) (Authenticator, string, error) {
 		return authenticator, credentialType, nil
 	}
 
+	// Parse it the secret is storage-secret-store
 	conf, err := config.ParseConfig(logger, secretData)
 	if err != nil {
 		logger.Error("Error parsing config", zap.Error(err))
