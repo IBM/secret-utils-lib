@@ -139,13 +139,13 @@ func ParseConfig(logger *zap.Logger, data string) (*Config, error) {
 	_, err := toml.Decode(data, configData)
 	if err != nil {
 		logger.Error("Failed to parse config", zap.Error(err))
-		return nil, utils.Error{Description: "Failed to parse config", BackendError: err.Error()}
+		return nil, utils.Error{Description: utils.ErrParsingConfig, BackendError: err.Error()}
 	}
 
 	err = envconfig.Process("", configData)
 	if err != nil {
 		logger.Error("Failed to gather environment config variable", zap.Error(err))
-		return nil, utils.Error{Description: "Failed to gather environment variables", BackendError: err.Error()}
+		return nil, utils.Error{Description: utils.ErrFetchingENV, BackendError: err.Error()}
 	}
 
 	logger.Info("Successfully parsed config")

@@ -112,7 +112,7 @@ func parseIBMCloudCredentials(logger *zap.Logger, data string) (map[string]strin
 	// validating credentials
 	credentialType, ok := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 	if !ok {
-		logger.Error("IBMCLOUD_AUTHTYPE is undefined")
+		logger.Error("IBMCLOUD_AUTHTYPE is undefined, expected - IAM or PODIDENTITY")
 		return nil, utils.Error{Description: utils.ErrAuthTypeUndefined}
 	}
 

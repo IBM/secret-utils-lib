@@ -30,6 +30,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	// nameSpacePath is the path from which namespace where the pod is running is obtained.
+	nameSpacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+)
+
 // GetSecretData ...
 func GetSecretData(logger *zap.Logger) (string, string, error) {
 	logger.Info("Fetching secret")
@@ -38,27 +43,27 @@ func GetSecretData(logger *zap.Logger) (string, string, error) {
 	k8sConfig, err := rest.InClusterConfig()
 	if err != nil {
 		logger.Error("Error fetching in cluster config", zap.Error(err))
-		return "", "", utils.Error{Description: "Error fetching secret - unable to fetch cluster config", BackendError: err.Error()}
+		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoClusterConfig, BackendError: err.Error()}
 	}
 
 	// Creating k8s client used to read secret
 	clientset, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		logger.Error("Error creating k8s client", zap.Error(err))
-		return "", "", utils.Error{Description: "Error fetching secret - unable to create k8s client", BackendError: err.Error()}
+		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoK8sClient, BackendError: err.Error()}
 	}
 
 	// Reading the namespace in which the pod is deployed
-	byteData, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	byteData, err := ioutil.ReadFile(nameSpacePath)
 	if err != nil {
 		logger.Error("Error fetching namespace", zap.Error(err))
-		return "", "", utils.Error{Description: "Error fetching secret %s - unable to read namespace", BackendError: err.Error()}
+		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace, BackendError: err.Error()}
 	}
 
 	namespace := string(byteData)
 	if namespace == "" {
 		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return "", "", utils.Error{Description: "Error fetching secret - unable to fetch namespace"}
+		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace}
 	}
 
 	logger.Info("Trying to fetch ibm-cloud-credentials secret")
@@ -76,7 +81,7 @@ func GetSecretData(logger *zap.Logger) (string, string, error) {
 		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), utils.STORAGE_SECRET_STORE_SECRET, v1.GetOptions{})
 		if err != nil {
 			logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.STORAGE_SECRET_STORE_SECRET))
-			return "", "", utils.Error{Description: fmt.Sprintf(""), BackendError: err.Error()}
+			return "", "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
 		}
 		dataname = utils.SECRET_STORE_FILE
 		secretname = utils.STORAGE_SECRET_STORE_SECRET
@@ -84,13 +89,13 @@ func GetSecretData(logger *zap.Logger) (string, string, error) {
 
 	if secret.Data == nil {
 		logger.Error("No data found in the secret")
-		return "", "", utils.Error{Description: fmt.Sprintf("No data found in the secret %s", secretname)}
+		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrEmptyDataInSecret, secretname)}
 	}
 
 	byteData, ok := secret.Data[dataname]
 	if !ok {
 		logger.Error("Expected data not found in the secret")
-		return "", "", utils.Error{Description: fmt.Sprintf("Expected data %s not found in the secret %s", dataname, secretname)}
+		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, dataname, secretname)}
 	}
 
 	sEnc := b64.StdEncoding.EncodeToString(byteData)
@@ -98,7 +103,7 @@ func GetSecretData(logger *zap.Logger) (string, string, error) {
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
 	if err != nil {
 		logger.Error("Error decoding the secret data", zap.Error(err), zap.String("Secret name", secretname), zap.String("Data name", dataname))
-		return "", "", utils.Error{Description: fmt.Sprintf("Unable to fetch data from secret, Secret: %s, Data: %s", secretname, dataname), BackendError: err.Error()}
+		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
 	}
 
 	logger.Info("Successfully fetched secret data")
