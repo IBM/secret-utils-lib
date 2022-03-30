@@ -18,6 +18,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.27.1
+	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 	k8s.io/client-go v0.0.0-00010101000000-000000000000
 )

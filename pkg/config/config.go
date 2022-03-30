@@ -24,10 +24,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	configFileName = "slclient.toml"
-)
-
 // Config is the parent struct for all the configuration information for -cluster
 type Config struct {
 	Server    *ServerConfig  `required:"true"`
