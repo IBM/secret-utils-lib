@@ -96,3 +96,8 @@ func (aa *APIKeyAuthenticator) GetSecret() string {
 func (aa *APIKeyAuthenticator) SetSecret(secret string) {
 	aa.authenticator.ApiKey = secret
 }
+
+// SetURL ...
+func (aa *APIKeyAuthenticator) SetURL(url string) {
+	aa.authenticator.URL = url
+}

@@ -96,3 +96,8 @@ func (ca *ComputeIdentityAuthenticator) GetSecret() string {
 func (ca *ComputeIdentityAuthenticator) SetSecret(secret string) {
 	ca.authenticator.IAMProfileID = secret
 }
+
+// SetURL ...
+func (ca *ComputeIdentityAuthenticator) SetURL(url string) {
+	ca.authenticator.URL = url
+}

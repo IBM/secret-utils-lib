@@ -35,6 +35,7 @@ type Authenticator interface {
 	GetToken(freshTokenRequired bool) (string, uint64, error)
 	GetSecret() string
 	SetSecret(secret string)
+	SetURL(url string)
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
