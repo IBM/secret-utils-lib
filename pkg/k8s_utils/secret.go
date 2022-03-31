@@ -20,6 +20,7 @@ package k8s_utils
 import (
 	"context"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -35,37 +36,69 @@ const (
 	nameSpacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-// GetSecretData ...
-func GetSecretData(logger *zap.Logger) (string, string, error) {
-	logger.Info("Fetching secret")
+// Getk8sClientSet ...
+func Getk8sClientSet(logger *zap.Logger) (*kubernetes.Clientset, error) {
+	logger.Info("Fetching k8s clientset")
 
 	// Fetching cluster config used to create k8s client
 	k8sConfig, err := rest.InClusterConfig()
 	if err != nil {
 		logger.Error("Error fetching in cluster config", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoClusterConfig, BackendError: err.Error()}
+		return nil, err
 	}
 
 	// Creating k8s client used to read secret
 	clientset, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		logger.Error("Error creating k8s client", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoK8sClient, BackendError: err.Error()}
+		return nil, err
 	}
 
+	logger.Info("Successfully fetched k8s client set")
+	return clientset, nil
+}
+
+// GetNameSpace ...
+func GetNameSpace(logger *zap.Logger) (string, error) {
+	logger.Info("Fetching namespace")
 	// Reading the namespace in which the pod is deployed
 	byteData, err := ioutil.ReadFile(nameSpacePath)
 	if err != nil {
 		logger.Error("Error fetching namespace", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace, BackendError: err.Error()}
+		return "", err
 	}
 
 	namespace := string(byteData)
 	if namespace == "" {
 		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace}
+		return "", errors.New("namespace not found")
 	}
 
+	logger.Info("Successfully fetched namespace")
+	return namespace, nil
+}
+
+// GetSecretData ...
+func GetSecretData(logger *zap.Logger) (string, string, error) {
+	logger.Info("Fetching secret data")
+
+	clientset, err := Getk8sClientSet(logger)
+	if err != nil {
+		logger.Error("Error fetching k8s client set", zap.Error(err))
+		return "", "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
+	}
+
+	namespace, err := GetNameSpace(logger)
+	if err != nil {
+		logger.Error("Unable to fetch namespace", zap.Error(err))
+		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace, BackendError: err.Error()}
+	}
+
+	return GetCredentials(logger, clientset, namespace)
+}
+
+// GetCredentials ...
+func GetCredentials(logger *zap.Logger, clientset *kubernetes.Clientset, namespace string) (string, string, error) {
 	logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
 	var dataname string

@@ -19,7 +19,6 @@ package authenticator
 import (
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
-
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 )

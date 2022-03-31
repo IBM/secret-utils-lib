@@ -96,7 +96,7 @@ const (
 	ErrFetchingSecretData = "Unable to fetch data from secret, Secret: %s, Data: %s"
 
 	// ErrParsingConfig ...
-	ErrParsingConfig = "Failed to parse config"
+	ErrParsingConfig = "Failed to parse storage secret store secret config"
 
 	// ErrFetchingENV ...
 	ErrFetchingENV = "Failed to gather environment variables"
