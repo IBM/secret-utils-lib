@@ -37,7 +37,7 @@ const (
 )
 
 // Getk8sClientSet ...
-func Getk8sClientSet(logger *zap.Logger) (kubernetes.Interface, error) {
+func Getk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
 	logger.Info("Fetching k8s clientset")
 
 	// Fetching cluster config used to create k8s client
@@ -53,48 +53,32 @@ func Getk8sClientSet(logger *zap.Logger) (kubernetes.Interface, error) {
 		logger.Error("Error creating k8s client", zap.Error(err))
 		return nil, err
 	}
-
 	logger.Info("Successfully fetched k8s client set")
-	return clientset, nil
-}
 
-// GetNameSpace ...
-func GetNameSpace(logger *zap.Logger) (string, error) {
-	logger.Info("Fetching namespace")
 	// Reading the namespace in which the pod is deployed
+	logger.Info("Fetching namespace")
 	byteData, err := ioutil.ReadFile(nameSpacePath)
 	if err != nil {
 		logger.Error("Error fetching namespace", zap.Error(err))
-		return "", err
+		return nil, err
 	}
 
 	namespace := string(byteData)
 	if namespace == "" {
 		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return "", errors.New("namespace not found")
+		return nil, errors.New("namespace not found")
 	}
-
 	logger.Info("Successfully fetched namespace")
-	return namespace, nil
-}
 
-// GetSecretData ...
-func GetSecretData(logger *zap.Logger, clientset kubernetes.Interface) (string, string, error) {
-	logger.Info("Fetching secret data")
-
-	namespace, err := GetNameSpace(logger)
-	if err != nil {
-		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecretNoNamespace, BackendError: err.Error()}
-	}
-
-	return GetCredentials(logger, clientset, namespace)
+	return &KubernetesClient{logger: logger, clientset: clientset, namespace: namespace}, nil
 }
 
 // GetCredentials ...
-func GetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespace string) (string, string, error) {
-	logger.Info("Trying to fetch ibm-cloud-credentials secret")
+func GetSecretData(kc *KubernetesClient) (string, string, error) {
+	kc.logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
+	namespace := kc.GetNameSpace()
+	clientset := kc.clientset
 	var dataname string
 	var secretname string
 	// Fetching secret
@@ -103,11 +87,11 @@ func GetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespac
 		dataname = utils.CLOUD_PROVIDER_ENV
 		secretname = utils.IBMCLOUD_CREDENTIALS_SECRET
 	} else {
-		logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.IBMCLOUD_CREDENTIALS_SECRET))
-		logger.Info("Trying to fetch storage-secret-store secret")
+		kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.IBMCLOUD_CREDENTIALS_SECRET))
+		kc.logger.Info("Trying to fetch storage-secret-store secret")
 		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), utils.STORAGE_SECRET_STORE_SECRET, v1.GetOptions{})
 		if err != nil {
-			logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.STORAGE_SECRET_STORE_SECRET))
+			kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.STORAGE_SECRET_STORE_SECRET))
 			return "", "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
 		}
 		dataname = utils.SECRET_STORE_FILE
@@ -115,13 +99,13 @@ func GetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespac
 	}
 
 	if secret.Data == nil {
-		logger.Error("No data found in the secret")
+		kc.logger.Error("No data found in the secret")
 		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrEmptyDataInSecret, secretname)}
 	}
 
 	byteData, ok := secret.Data[dataname]
 	if !ok {
-		logger.Error("Expected data not found in the secret")
+		kc.logger.Error("Expected data not found in the secret")
 		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, dataname, secretname)}
 	}
 
@@ -129,10 +113,10 @@ func GetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespac
 
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
 	if err != nil {
-		logger.Error("Error decoding the secret data", zap.Error(err), zap.String("Secret name", secretname), zap.String("Data name", dataname))
+		kc.logger.Error("Error decoding the secret data", zap.Error(err), zap.String("Secret name", secretname), zap.String("Data name", dataname))
 		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
 	}
 
-	logger.Info("Successfully fetched secret data")
+	kc.logger.Info("Successfully fetched secret data")
 	return string(sDec), secretname, nil
 }

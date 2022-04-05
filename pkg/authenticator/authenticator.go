@@ -25,7 +25,6 @@ import (
 	"github.com/IBM/secret-utils-lib/pkg/k8s_utils"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
-	"k8s.io/client-go/kubernetes"
 )
 
 // defaultSecret is the default api key or profile ID fetched from the secret
@@ -40,11 +39,11 @@ type Authenticator interface {
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
-func NewAuthenticator(logger *zap.Logger, clientset kubernetes.Interface) (Authenticator, string, error) {
+func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// Fetching secret data (ibm-cloud-credentials or storage-secret-store)
-	secretData, secretname, err := k8s_utils.GetSecretData(logger, clientset)
+	secretData, secretname, err := k8s_utils.GetSecretData(logger, kc)
 	if err != nil {
 		logger.Error("Error fetching secret", zap.Error(err))
 		return nil, "", err
