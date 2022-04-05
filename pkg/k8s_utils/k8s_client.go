@@ -34,3 +34,8 @@ func (kc *KubernetesClient) GetNameSpace() string {
 	kc.logger.Info("Fetching namespace")
 	return kc.namespace
 }
+
+// GetClientSet ...
+func (kc *KubernetesClient) GetClientSet() kubernetes.Interface {
+	return kc.clientset
+}
