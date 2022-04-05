@@ -33,10 +33,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-var (
-	FakeAuthType string
-)
-
 // FakeGetk8sClientSet ...
 func FakeGetk8sClientSet(logger *zap.Logger) (kubernetes.Interface, error) {
 	logger.Info("Getting fake k8s client")
@@ -76,11 +72,11 @@ func FakeGetSecretData(logger *zap.Logger) (string, string, error) {
 */
 
 // FakeCreateSecret ...
-func FakeCreateSecret(logger *zap.Logger, clientset kubernetes.Interface) error {
+func FakeCreateSecret(logger *zap.Logger, clientset kubernetes.Interface, fakeAuthType string) error {
 	secret := new(v1.Secret)
 
 	var secretfilepath, dataname string
-	switch FakeAuthType {
+	switch fakeAuthType {
 	case utils.IAM:
 		secret.Name = utils.IBMCLOUD_CREDENTIALS_SECRET
 		secretfilepath = "test-fixtures/ibmcloud_credentials/valid/apikey.toml"
