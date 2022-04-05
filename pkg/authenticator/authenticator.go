@@ -43,7 +43,7 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 	logger.Info("Initializing authenticator")
 
 	// Fetching secret data (ibm-cloud-credentials or storage-secret-store)
-	secretData, secretname, err := k8s_utils.GetSecretData(logger, kc)
+	secretData, secretname, err := k8s_utils.GetSecretData(kc)
 	if err != nil {
 		logger.Error("Error fetching secret", zap.Error(err))
 		return nil, "", err
