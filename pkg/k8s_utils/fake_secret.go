@@ -20,7 +20,6 @@ package k8s_utils
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -30,6 +29,7 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -38,7 +38,7 @@ var (
 )
 
 // FakeGetk8sClientSet ...
-func FakeGetk8sClientSet(logger *zap.Logger) (*fake.Clientset, error) {
+func FakeGetk8sClientSet(logger *zap.Logger) (kubernetes.Interface, error) {
 	logger.Info("Getting fake k8s client")
 	return fake.NewSimpleClientset(), nil
 }
@@ -48,6 +48,7 @@ func FakeGetNameSpace(logger *zap.Logger) (string, error) {
 	return "kube-system", nil
 }
 
+/*
 // FakeGetSecretData ...
 func FakeGetSecretData(logger *zap.Logger) (string, string, error) {
 	logger.Info("Fetching secret data")
@@ -72,9 +73,10 @@ func FakeGetSecretData(logger *zap.Logger) (string, string, error) {
 
 	return FakeGetCredentials(logger, clientset, namespace)
 }
+*/
 
 // FakeCreateSecret ...
-func FakeCreateSecret(logger *zap.Logger, clientset *fake.Clientset) error {
+func FakeCreateSecret(logger *zap.Logger, clientset kubernetes.Interface) error {
 	secret := new(v1.Secret)
 
 	var secretfilepath, dataname string
@@ -101,7 +103,7 @@ func FakeCreateSecret(logger *zap.Logger, clientset *fake.Clientset) error {
 	if err != nil {
 		return err
 	}
-	configPath := filepath.Join(pwd, "..", "..", secretfilepath)
+	configPath := filepath.Join(pwd, secretfilepath)
 
 	byteData, err := os.ReadFile(configPath)
 	if err != nil {
@@ -121,8 +123,9 @@ func FakeCreateSecret(logger *zap.Logger, clientset *fake.Clientset) error {
 	return nil
 }
 
+/*
 // FakeGetCredentials ...
-func FakeGetCredentials(logger *zap.Logger, clientset *fake.Clientset, namespace string) (string, string, error) {
+func FakeGetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespace string) (string, string, error) {
 	logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
 	var dataname string
@@ -166,3 +169,4 @@ func FakeGetCredentials(logger *zap.Logger, clientset *fake.Clientset, namespace
 	logger.Info("Successfully fetched secret data")
 	return string(sDec), secretname, nil
 }
+*/

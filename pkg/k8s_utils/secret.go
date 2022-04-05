@@ -37,7 +37,7 @@ const (
 )
 
 // Getk8sClientSet ...
-func Getk8sClientSet(logger *zap.Logger) (*kubernetes.Clientset, error) {
+func Getk8sClientSet(logger *zap.Logger) (kubernetes.Interface, error) {
 	logger.Info("Fetching k8s clientset")
 
 	// Fetching cluster config used to create k8s client
@@ -79,14 +79,8 @@ func GetNameSpace(logger *zap.Logger) (string, error) {
 }
 
 // GetSecretData ...
-func GetSecretData(logger *zap.Logger) (string, string, error) {
+func GetSecretData(logger *zap.Logger, clientset kubernetes.Interface) (string, string, error) {
 	logger.Info("Fetching secret data")
-
-	clientset, err := Getk8sClientSet(logger)
-	if err != nil {
-		logger.Error("Error fetching k8s client set", zap.Error(err))
-		return "", "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
-	}
 
 	namespace, err := GetNameSpace(logger)
 	if err != nil {
@@ -98,7 +92,7 @@ func GetSecretData(logger *zap.Logger) (string, string, error) {
 }
 
 // GetCredentials ...
-func GetCredentials(logger *zap.Logger, clientset *kubernetes.Clientset, namespace string) (string, string, error) {
+func GetCredentials(logger *zap.Logger, clientset kubernetes.Interface, namespace string) (string, string, error) {
 	logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
 	var dataname string
