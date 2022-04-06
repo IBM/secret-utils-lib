@@ -20,7 +20,6 @@ package k8s_utils
 import (
 	"context"
 	b64 "encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -44,14 +43,14 @@ func Getk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
 	k8sConfig, err := rest.InClusterConfig()
 	if err != nil {
 		logger.Error("Error fetching in cluster config", zap.Error(err))
-		return nil, err
+		return nil, utils.Error{Description: utils.ErrFetchingClusterConfig, BackendError: err.Error()}
 	}
 
 	// Creating k8s client used to read secret
 	clientset, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		logger.Error("Error creating k8s client", zap.Error(err))
-		return nil, err
+		return nil, utils.Error{Description: utils.ErrFetchingClusterConfig, BackendError: err.Error()}
 	}
 	logger.Info("Successfully fetched k8s client set")
 
@@ -60,13 +59,13 @@ func Getk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
 	byteData, err := ioutil.ReadFile(nameSpacePath)
 	if err != nil {
 		logger.Error("Error fetching namespace", zap.Error(err))
-		return nil, err
+		return nil, utils.Error{Description: utils.ErrFetchingNamespace, BackendError: err.Error()}
 	}
 
 	namespace := string(byteData)
 	if namespace == "" {
 		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return nil, errors.New("namespace not found")
+		return nil, utils.Error{Description: utils.ErrFetchingNamespace, BackendError: "namespace empty"}
 	}
 	logger.Info("Successfully fetched namespace")
 

@@ -75,6 +75,7 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 		return nil, "", err
 	}
 
+	// TODO - decide between choosing Bluemix / VPC api key
 	if conf.VPC.G2APIKey == "" {
 		logger.Error("Empty api key read from the secret", zap.Error(err))
 		return nil, "", utils.Error{Description: utils.ErrAPIKeyNotProvided}
