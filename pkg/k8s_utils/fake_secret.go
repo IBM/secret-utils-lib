@@ -23,8 +23,6 @@ import (
 	"os"
 	"path/filepath"
 
-	b64 "encoding/base64"
-
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -54,7 +52,7 @@ func FakeCreateSecret(kc *KubernetesClient, fakeAuthType string) error {
 		dataname = utils.CLOUD_PROVIDER_ENV
 	case utils.DEFAULT:
 		secret.Name = utils.STORAGE_SECRET_STORE_SECRET
-		secretfilepath = "test-fixtures/valid/slclient.toml"
+		secretfilepath = "test-fixtures/storage_secret_store/valid/slclient.toml"
 		dataname = utils.SECRET_STORE_FILE
 	default:
 		return errors.New("undefined auth type")
@@ -67,16 +65,14 @@ func FakeCreateSecret(kc *KubernetesClient, fakeAuthType string) error {
 		return err
 	}
 
-	configPath := filepath.Join(pwd, secretfilepath)
+	configPath := filepath.Join(pwd, "..", "..", secretfilepath)
 	byteData, err := os.ReadFile(configPath)
 	if err != nil {
 		kc.logger.Error("Error reading secret data", zap.Error(err))
 		return err
 	}
 
-	dst := make([]byte, b64.StdEncoding.EncodedLen(len(byteData)))
-	b64.StdEncoding.Encode(dst, byteData)
-	data[dataname] = dst
+	data[dataname] = byteData
 	secret.Data = data
 	clientset := kc.clientset
 	_, err = clientset.CoreV1().Secrets("kube-system").Create(context.TODO(), secret, metav1.CreateOptions{})
