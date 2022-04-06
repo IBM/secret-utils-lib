@@ -55,7 +55,7 @@ func FakeCreateSecret(kc *KubernetesClient, fakeAuthType string) error {
 		secretfilepath = "test-fixtures/storage_secret_store/valid/slclient.toml"
 		dataname = utils.SECRET_STORE_FILE
 	case "invalid":
-		secret.Name = "invalid"
+		secret.Name = utils.IBMCLOUD_CREDENTIALS_SECRET
 		secretfilepath = "test-fixtures/ibmcloud_credentials/invalid/invalid.toml"
 	default:
 		return errors.New("undefined auth type")
