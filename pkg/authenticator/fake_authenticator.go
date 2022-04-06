@@ -16,7 +16,11 @@
 
 package authenticator
 
-import "go.uber.org/zap"
+import (
+	"errors"
+
+	"go.uber.org/zap"
+)
 
 type FakeAuthenticator struct {
 	logger *zap.Logger
@@ -30,7 +34,10 @@ func NewFakeAuthenticator(logger *zap.Logger) *FakeAuthenticator {
 
 // GetToken ...
 func (fa *FakeAuthenticator) GetToken(freshTokenRequired bool) (string, uint64, error) {
-	return "token", 1000, nil
+	if !freshTokenRequired {
+		return "token", 1000, nil
+	}
+	return "", 0, errors.New("Not nil")
 }
 
 // GetSecret ...
