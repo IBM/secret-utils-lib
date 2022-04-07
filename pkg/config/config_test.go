@@ -19,6 +19,7 @@ package config
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,7 +58,7 @@ func TestParseConfig(t *testing.T) {
 			}
 
 			filePath := filepath.Join(pwd, "..", "..", testcase.secretconfigpath)
-			byteData, err := os.ReadFile(filePath)
+			byteData, err := ioutil.ReadFile(filePath)
 			if err != nil {
 				t.Errorf("Failed to get current working directory, test case parse config, error: %v", err)
 			}

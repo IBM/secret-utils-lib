@@ -20,6 +20,7 @@ package k8s_utils
 import (
 	"context"
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -69,7 +70,7 @@ func FakeCreateSecret(kc *KubernetesClient, fakeAuthType string) error {
 	}
 
 	configPath := filepath.Join(pwd, "..", "..", secretfilepath)
-	byteData, err := os.ReadFile(configPath)
+	byteData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		kc.logger.Error("Error reading secret data", zap.Error(err))
 		return err
