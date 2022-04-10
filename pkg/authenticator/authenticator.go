@@ -36,6 +36,8 @@ type Authenticator interface {
 	GetSecret() string
 	SetSecret(secret string)
 	SetURL(url string)
+	SetEncryption(bool)
+	IsSecretEncrypted() bool
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
@@ -84,6 +86,7 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
 	logger.Info("Successfully initialized authenticator")
+	authenticator.SetEncryption(conf.VPC.Encryption)
 	return authenticator, utils.DEFAULT, nil
 }
 

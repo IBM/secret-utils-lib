@@ -100,3 +100,13 @@ func (ca *ComputeIdentityAuthenticator) SetSecret(secret string) {
 func (ca *ComputeIdentityAuthenticator) SetURL(url string) {
 	ca.authenticator.URL = url
 }
+
+// IsSecretEncrypted ...
+func (ca *ComputeIdentityAuthenticator) IsSecretEncrypted() bool {
+	return false
+}
+
+// SetEncryption ...
+func (ca *ComputeIdentityAuthenticator) SetEncryption(encrypted bool) {
+	ca.logger.Info("Unimplemented")
+}
