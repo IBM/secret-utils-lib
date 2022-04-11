@@ -57,7 +57,7 @@ func (fa *FakeAuthenticator) SetURL(url string) {
 
 // IsSecretEncrypted ...
 func (fa *FakeAuthenticator) IsSecretEncrypted() bool {
-	return false
+	return true
 }
 
 // SetEncryption ...
