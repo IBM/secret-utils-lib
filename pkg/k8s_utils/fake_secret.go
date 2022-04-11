@@ -21,8 +21,6 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
@@ -38,39 +36,27 @@ func FakeGetk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
 }
 
 // FakeCreateSecret ...
-func FakeCreateSecret(kc *KubernetesClient, fakeAuthType string) error {
+func FakeCreateSecret(kc *KubernetesClient, fakeAuthType, secretdatafilepath string) error {
 	secret := new(v1.Secret)
 
-	var secretfilepath, dataname string
+	var dataname string
 	switch fakeAuthType {
-	case utils.IAM:
+	case utils.IAM, utils.PODIDENTITY:
 		secret.Name = utils.IBMCLOUD_CREDENTIALS_SECRET
-		secretfilepath = "test-fixtures/ibmcloud_credentials/valid/apikey.toml"
-		dataname = utils.CLOUD_PROVIDER_ENV
-	case utils.PODIDENTITY:
-		secret.Name = utils.IBMCLOUD_CREDENTIALS_SECRET
-		secretfilepath = "test-fixtures/ibmcloud_credentials/valid/trusted_profile.toml"
 		dataname = utils.CLOUD_PROVIDER_ENV
 	case utils.DEFAULT:
 		secret.Name = utils.STORAGE_SECRET_STORE_SECRET
-		secretfilepath = "test-fixtures/storage_secret_store/valid/slclient.toml"
 		dataname = utils.SECRET_STORE_FILE
 	case "invalid":
 		secret.Name = utils.IBMCLOUD_CREDENTIALS_SECRET
-		secretfilepath = "test-fixtures/ibmcloud_credentials/invalid/invalid.toml"
 	default:
 		return errors.New("undefined auth type")
 	}
 
 	secret.Namespace = kc.GetNameSpace()
 	data := make(map[string][]byte)
-	pwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 
-	configPath := filepath.Join(pwd, "..", "..", secretfilepath)
-	byteData, err := ioutil.ReadFile(configPath)
+	byteData, err := ioutil.ReadFile(secretdatafilepath)
 	if err != nil {
 		kc.logger.Error("Error reading secret data", zap.Error(err))
 		return err
