@@ -25,8 +25,9 @@ import (
 
 // APIKeyAuthenticator ...
 type APIKeyAuthenticator struct {
-	authenticator *core.IamAuthenticator
-	logger        *zap.Logger
+	authenticator     *core.IamAuthenticator
+	logger            *zap.Logger
+	isSecretEncrypted bool
 }
 
 // NewIamAuthenticator ...
@@ -95,4 +96,19 @@ func (aa *APIKeyAuthenticator) GetSecret() string {
 // SetSecret ...
 func (aa *APIKeyAuthenticator) SetSecret(secret string) {
 	aa.authenticator.ApiKey = secret
+}
+
+// SetURL ...
+func (aa *APIKeyAuthenticator) SetURL(url string) {
+	aa.authenticator.URL = url
+}
+
+// IsSecretEncrypted ...
+func (aa *APIKeyAuthenticator) IsSecretEncrypted() bool {
+	return aa.isSecretEncrypted
+}
+
+// SetEncryption ...
+func (aa *APIKeyAuthenticator) SetEncryption(encrypted bool) {
+	aa.isSecretEncrypted = encrypted
 }

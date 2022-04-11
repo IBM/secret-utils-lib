@@ -14,43 +14,39 @@
  * limitations under the License.
  */
 
-// Package config ...
 package config
 
 import (
 	"bytes"
+	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func TestReadConfig(t *testing.T) {
+func TestParseConfig(t *testing.T) {
 	logger, teardown := GetTestLogger(t)
 	defer teardown()
+
 	testcases := []struct {
-		testcasename  string
-		configdir     string
-		expectedError error
+		testcasename     string
+		secretconfigpath string
+		expectedError    error
 	}{
 		{
-			testcasename:  "Empty secret config path",
-			configdir:     "",
-			expectedError: utils.Error{Description: utils.ErrSecretConfigPathUndefined},
+			testcasename:     "Valid config",
+			secretconfigpath: "test-fixtures/valid/slclient.toml",
+			expectedError:    nil,
 		},
 		{
-			testcasename:  "Invalid secret config",
-			configdir:     "test-fixtures/invalid",
-			expectedError: utils.Error{Description: "Failed to read config file"},
-		},
-		{
-			testcasename:  "Valid secret config",
-			configdir:     "test-fixtures/valid",
-			expectedError: nil,
+			testcasename:     "Invalid config",
+			secretconfigpath: "test-fixtures/invalid/slclient.toml",
+			expectedError:    errors.New("Not nil"),
 		},
 	}
 
@@ -58,18 +54,16 @@ func TestReadConfig(t *testing.T) {
 		t.Run(testcase.testcasename, func(t *testing.T) {
 			pwd, err := os.Getwd()
 			if err != nil {
-				t.Errorf("Failed to get current working directory, test case read config, error: %v", err)
+				t.Errorf("Failed to get current working directory, test case parse config, error: %v", err)
 			}
-			if testcase.configdir == "" {
-				err = os.Setenv("SECRET_CONFIG_PATH", "")
-			} else {
-				err = os.Setenv("SECRET_CONFIG_PATH", filepath.Join(pwd, "..", "..", testcase.configdir))
-			}
+
+			filePath := filepath.Join(pwd, "..", "..", testcase.secretconfigpath)
+			byteData, err := ioutil.ReadFile(filePath)
 			if err != nil {
-				t.Errorf("Failed to set env variable, test case related to read config will fail error: %v", err)
+				t.Errorf("Failed to get current working directory, test case parse config, error: %v", err)
 			}
-			defer os.Unsetenv("SECRET_CONFIG_PATH")
-			_, err = ReadConfig(logger)
+
+			_, err = ParseConfig(logger, string(byteData))
 			if testcase.expectedError != nil {
 				assert.NotNil(t, err)
 			}

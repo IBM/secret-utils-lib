@@ -14,28 +14,53 @@
  * limitations under the License.
  */
 
-// Package authenticator ...
 package authenticator
 
-import "go.uber.org/zap"
+import (
+	"errors"
+
+	"go.uber.org/zap"
+)
 
 type FakeAuthenticator struct {
-	secret string
 	logger *zap.Logger
+	secret string
+	url    string
 }
 
-func newFakeAuthenticator(secret string, logger *zap.Logger) *FakeAuthenticator {
-	return &FakeAuthenticator{secret: secret, logger: logger}
+func NewFakeAuthenticator(logger *zap.Logger) *FakeAuthenticator {
+	return &FakeAuthenticator{logger: logger}
 }
 
-func (fa *FakeAuthenticator) GetToken() (string, uint64, error) {
-	return "", 0, nil
+// GetToken ...
+func (fa *FakeAuthenticator) GetToken(freshTokenRequired bool) (string, uint64, error) {
+	if !freshTokenRequired {
+		return "token", 1000, nil
+	}
+	return "", 0, errors.New("Not nil")
 }
 
+// GetSecret ...
 func (fa *FakeAuthenticator) GetSecret() string {
 	return fa.secret
 }
 
+// SetSecret ...
 func (fa *FakeAuthenticator) SetSecret(secret string) {
 	fa.secret = secret
+}
+
+// SetURL ...
+func (fa *FakeAuthenticator) SetURL(url string) {
+	fa.url = url
+}
+
+// IsSecretEncrypted ...
+func (fa *FakeAuthenticator) IsSecretEncrypted() bool {
+	return true
+}
+
+// SetEncryption ...
+func (fa *FakeAuthenticator) SetEncryption(encrypted bool) {
+	fa.logger.Info("Unimplemented")
 }

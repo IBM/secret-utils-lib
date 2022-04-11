@@ -19,7 +19,6 @@ package authenticator
 import (
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
-
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -95,4 +94,19 @@ func (ca *ComputeIdentityAuthenticator) GetSecret() string {
 // SetSecret ...
 func (ca *ComputeIdentityAuthenticator) SetSecret(secret string) {
 	ca.authenticator.IAMProfileID = secret
+}
+
+// SetURL ...
+func (ca *ComputeIdentityAuthenticator) SetURL(url string) {
+	ca.authenticator.URL = url
+}
+
+// IsSecretEncrypted ...
+func (ca *ComputeIdentityAuthenticator) IsSecretEncrypted() bool {
+	return false
+}
+
+// SetEncryption ...
+func (ca *ComputeIdentityAuthenticator) SetEncryption(encrypted bool) {
+	ca.logger.Info("Unimplemented")
 }

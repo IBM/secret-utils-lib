@@ -48,7 +48,7 @@ const (
 	ErrInvalidCredentialsFormat = "ibmcloud credentials are provided in invalid format, unable to parse the credentials"
 
 	// ErrAuthTypeUndefined ...
-	ErrAuthTypeUndefined = "IBMCLOUD_AUTHTYPE undefined"
+	ErrAuthTypeUndefined = "IBMCLOUD_AUTHTYPE undefined, expected - IAM or PODIDENTITY"
 
 	// ErrUnknownCredentialType ...
 	ErrUnknownCredentialType = "Unknown IBMCLOUD_AUTHTYPE provided. IBMCLOUD_AUTHTYPE: %s"
@@ -73,4 +73,31 @@ const (
 
 	// ErrEmptyTokenResponse ...
 	ErrEmptyTokenResponse = "Empty token response received"
+
+	// ErrFetchingClusterConfig ...
+	ErrFetchingClusterConfig = "Error fetching cluster config"
+
+	// ErrFetchingK8sClient ...
+	ErrFetchingK8sClient = "Error fetching k8s client"
+
+	// ErrFetchingNamespace ...
+	ErrFetchingNamespace = "Unable to read k8s namespace"
+
+	// ErrFetchingSecrets ...
+	ErrFetchingSecrets = "Error fetching secrets"
+
+	// ErrEmptyDataInSecret ...
+	ErrEmptyDataInSecret = "No data found in the secret %s"
+
+	// ErrExpectedDataNotFound ...
+	ErrExpectedDataNotFound = "Expected data %s not found in the secret %s"
+
+	// ErrFetchingSecretData ...
+	ErrFetchingSecretData = "Unable to fetch data from secret, Secret: %s, Data: %s"
+
+	// ErrParsingConfig ...
+	ErrParsingConfig = "Failed to parse storage secret store config"
+
+	// ErrFetchingENV ...
+	ErrFetchingENV = "Failed to gather environment variables"
 )
