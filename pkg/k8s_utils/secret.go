@@ -61,7 +61,15 @@ func Getk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
 	}
 	logger.Info("Successfully fetched namespace")
 
-	return &KubernetesClient{logger: logger, clientset: clientset, namespace: namespace}, nil
+	kc := &KubernetesClient{logger: logger, clientset: clientset, namespace: namespace}
+
+	err = frameTokenExchangeURL(kc)
+	if err != nil {
+		logger.Error("Error fetching token exchange URL", zap.Error(err))
+		return nil, err
+	}
+
+	return kc, nil
 }
 
 // GetCredentials ...

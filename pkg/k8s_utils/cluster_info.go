@@ -24,26 +24,29 @@ type clusterInfo struct {
 	MasterURL string `json:"master_url"`
 }
 
-// FrameTokenExchangeURL ...
-func FrameTokenExchangeURL(kc *KubernetesClient) (string, error) {
+// frameTokenExchangeURL ...
+func frameTokenExchangeURL(kc *KubernetesClient) error {
 	kc.logger.Info("Forming token exchange URL")
 	masterUrl, err := getClusterMasterURL(kc)
 	if err != nil {
 		// If the cluster-info is not found (this is the case of an unmanaged cluster, )
 		if strings.Contains(err.Error(), "not found") {
-			return utils.PublicTokenExchangeURL, nil
+			kc.tokenExchangeURL = utils.PublicTokenExchangeURL
+			return nil
 		}
 		kc.logger.Error("Error fetching cluster master URL", zap.Error(err))
-		return "", err
+		return err
 	}
 
 	if !strings.Contains(masterUrl, stageMasterURLsubstr) {
 		kc.logger.Info("Env - Production")
-		return utils.ProdTokenExchangeURL, nil
+		kc.tokenExchangeURL = utils.ProdTokenExchangeURL
+		return nil
 	}
 
 	kc.logger.Info("Env - Stage")
-	return utils.StageTokenExchangeURL, nil
+	kc.tokenExchangeURL = utils.StageTokenExchangeURL
+	return nil
 }
 
 // getClusterMasterURL ...

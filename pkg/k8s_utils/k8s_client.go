@@ -24,9 +24,10 @@ import (
 
 // KubernetesClient ...
 type KubernetesClient struct {
-	namespace string
-	logger    *zap.Logger
-	clientset kubernetes.Interface
+	namespace        string
+	logger           *zap.Logger
+	clientset        kubernetes.Interface
+	tokenExchangeURL string
 }
 
 // GetNameSpace ...
@@ -38,4 +39,9 @@ func (kc *KubernetesClient) GetNameSpace() string {
 // GetClientSet ...
 func (kc *KubernetesClient) GetClientSet() kubernetes.Interface {
 	return kc.clientset
+}
+
+// GetTokenExchangeURL ...
+func (kc *KubernetesClient) GetTokenExchangeURL() string {
+	return kc.tokenExchangeURL
 }
