@@ -116,6 +116,8 @@ func GetSecretData(kc *KubernetesClient) (string, string, error) {
 		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
 	}
 
+	GetCM(kc)
+
 	kc.logger.Info("Successfully fetched secret data")
 	return string(sDec), secretname, nil
 }
