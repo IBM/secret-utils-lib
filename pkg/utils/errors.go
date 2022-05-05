@@ -100,4 +100,7 @@ const (
 
 	// ErrFetchingENV ...
 	ErrFetchingENV = "Failed to gather environment variables"
+
+	// ErrEmptyClusterConfig ...
+	ErrEmptyClusterConfig = "Cluster config is empty"
 )

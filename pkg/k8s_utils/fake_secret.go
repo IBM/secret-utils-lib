@@ -70,6 +70,5 @@ func FakeCreateSecret(kc *KubernetesClient, fakeAuthType, secretdatafilepath str
 		kc.logger.Error("Error creating secret", zap.Error(err))
 		return err
 	}
-	GetCM(kc)
 	return nil
 }
