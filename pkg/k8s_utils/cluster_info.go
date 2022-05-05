@@ -15,6 +15,8 @@ const (
 	clusterInfoCM = "cluster-info"
 	// clusterConfigName ...
 	clusterConfigName = "cluster-config.json"
+	// stageMasterURLsubstr ...
+	stageMasterURLsubstr = ".test."
 )
 
 // clusterInfo contains the cluster information
@@ -27,17 +29,21 @@ func FrameTokenExchangeURL(kc *KubernetesClient) (string, error) {
 	kc.logger.Info("Forming token exchange URL")
 	masterUrl, err := getClusterMasterURL(kc)
 	if err != nil {
+		// If the cluster-info is not found (this is the case of an unmanaged cluster, )
+		if strings.Contains(err.Error(), "not found") {
+			return utils.PublicTokenExchangeURL, nil
+		}
 		kc.logger.Error("Error fetching cluster master URL", zap.Error(err))
 		return "", err
 	}
 
-	if !strings.Contains(masterUrl, ".test.") {
+	if !strings.Contains(masterUrl, stageMasterURLsubstr) {
 		kc.logger.Info("Env - Production")
-		return utils.ProdIAMURL, nil
+		return utils.ProdTokenExchangeURL, nil
 	}
 
 	kc.logger.Info("Env - Stage")
-	return utils.StageIAMURL, nil
+	return utils.StageTokenExchangeURL, nil
 }
 
 // getClusterMasterURL ...
@@ -51,7 +57,7 @@ func getClusterMasterURL(kc *KubernetesClient) (string, error) {
 
 	if err != nil {
 		kc.logger.Error("Error fetching cluster-info configmap", zap.Error(err))
-		return "", err
+		return "", utils.Error{Description: utils.ErrFetchingClusterConfig, BackendError: err.Error()}
 	}
 
 	data, ok := cm.Data[clusterConfigName]
