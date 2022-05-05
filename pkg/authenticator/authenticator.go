@@ -50,6 +50,13 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 		logger.Error("Error fetching secret", zap.Error(err))
 		return nil, "", err
 	}
+
+	tokenechangeURL, err := k8s_utils.FrameTokenExchangeURL(kc)
+	if err != nil {
+		logger.Error("Error forming token exchange URL", zap.Error(err))
+		return nil, "", err
+	}
+
 	if secretname == utils.IBMCLOUD_CREDENTIALS_SECRET {
 		credentialsmap, err := parseIBMCloudCredentials(logger, secretData)
 		if err != nil {
@@ -67,6 +74,7 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 		}
 		logger.Info("Successfully initialized authenticator")
+		authenticator.SetURL(tokenechangeURL)
 		return authenticator, credentialType, nil
 	}
 
@@ -85,6 +93,7 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
+	authenticator.SetURL(tokenechangeURL)
 	logger.Info("Successfully initialized authenticator")
 	authenticator.SetEncryption(conf.VPC.Encryption)
 	return authenticator, utils.DEFAULT, nil
