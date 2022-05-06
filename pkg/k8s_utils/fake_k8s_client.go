@@ -30,13 +30,13 @@ import (
 )
 
 // FakeGetk8sClientSet ...
-func FakeGetk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
+func FakeGetk8sClientSet(logger *zap.Logger) (KubernetesClient, error) {
 	logger.Info("Getting fake k8s client")
-	return &KubernetesClient{namespace: "kube-system", logger: logger, clientset: fake.NewSimpleClientset()}, nil
+	return KubernetesClient{namespace: "kube-system", logger: logger, clientset: fake.NewSimpleClientset()}, nil
 }
 
 // FakeCreateSecret ...
-func FakeCreateSecret(kc *KubernetesClient, fakeAuthType, secretdatafilepath string) error {
+func FakeCreateSecret(kc KubernetesClient, fakeAuthType, secretdatafilepath string) error {
 	secret := new(v1.Secret)
 
 	var dataname string

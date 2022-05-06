@@ -21,59 +21,14 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
-const (
-	// nameSpacePath is the path from which namespace where the pod is running is obtained.
-	nameSpacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-)
-
-// Getk8sClientSet ...
-func Getk8sClientSet(logger *zap.Logger) (*KubernetesClient, error) {
-	logger.Info("Fetching k8s clientset")
-
-	// Fetching cluster config used to create k8s client
-	k8sConfig, err := rest.InClusterConfig()
-	if err != nil {
-		logger.Error("Error fetching in cluster config", zap.Error(err))
-		return nil, utils.Error{Description: utils.ErrFetchingClusterConfig, BackendError: err.Error()}
-	}
-
-	// Creating k8s client used to read secret
-	clientset, err := kubernetes.NewForConfig(k8sConfig)
-	if err != nil {
-		logger.Error("Error creating k8s client", zap.Error(err))
-		return nil, utils.Error{Description: utils.ErrFetchingClusterConfig, BackendError: err.Error()}
-	}
-	logger.Info("Successfully fetched k8s client set")
-
-	namespace, err := getNameSpace(logger)
-	if err != nil {
-		logger.Error("Error fetching namespace", zap.Error(err))
-		return nil, err
-	}
-	logger.Info("Successfully fetched namespace")
-
-	kc := &KubernetesClient{logger: logger, clientset: clientset, namespace: namespace}
-
-	err = frameTokenExchangeURL(kc)
-	if err != nil {
-		logger.Error("Error fetching token exchange URL", zap.Error(err))
-		return nil, err
-	}
-
-	return kc, nil
-}
-
-// GetCredentials ...
-func GetSecretData(kc *KubernetesClient) (string, string, error) {
+// GetSecretData ...
+func GetSecretData(kc KubernetesClient) (string, string, error) {
 	kc.logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
 	namespace := kc.GetNameSpace()
@@ -118,23 +73,4 @@ func GetSecretData(kc *KubernetesClient) (string, string, error) {
 
 	kc.logger.Info("Successfully fetched secret data")
 	return string(sDec), secretname, nil
-}
-
-// getNameSpace ...
-func getNameSpace(logger *zap.Logger) (string, error) {
-	// Reading the namespace in which the pod is deployed
-	logger.Info("Fetching namespace")
-	byteData, err := ioutil.ReadFile(nameSpacePath)
-	if err != nil {
-		logger.Error("Error fetching namespace", zap.Error(err))
-		return "", utils.Error{Description: utils.ErrFetchingNamespace, BackendError: err.Error()}
-	}
-
-	namespace := string(byteData)
-	if namespace == "" {
-		logger.Error("Unable to fetch namespace", zap.Error(err))
-		return "", utils.Error{Description: utils.ErrFetchingNamespace, BackendError: "namespace empty"}
-	}
-
-	return namespace, nil
 }

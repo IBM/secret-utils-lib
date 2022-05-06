@@ -41,7 +41,7 @@ type Authenticator interface {
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
-func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authenticator, string, error) {
+func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// Fetching secret data (ibm-cloud-credentials or storage-secret-store)
@@ -68,7 +68,6 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
 		}
 		logger.Info("Successfully initialized authenticator")
-		authenticator.SetURL(kc.GetTokenExchangeURL())
 		return authenticator, credentialType, nil
 	}
 
@@ -87,7 +86,6 @@ func NewAuthenticator(logger *zap.Logger, kc *k8s_utils.KubernetesClient) (Authe
 
 	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
-	authenticator.SetURL(kc.GetTokenExchangeURL())
 	logger.Info("Successfully initialized authenticator")
 	authenticator.SetEncryption(conf.VPC.Encryption)
 	return authenticator, utils.DEFAULT, nil
