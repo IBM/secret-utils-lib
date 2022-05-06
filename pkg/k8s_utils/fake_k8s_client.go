@@ -72,3 +72,26 @@ func FakeCreateSecret(kc KubernetesClient, fakeAuthType, secretdatafilepath stri
 	}
 	return nil
 }
+
+// FakeCreateCM ...
+func FakeCreateCM(kc KubernetesClient, clsuterInfofilepath string) error {
+	byteData, err := ioutil.ReadFile(clsuterInfofilepath)
+	if err != nil {
+		kc.logger.Error("Error reading content to create config map", zap.Error(err))
+		return err
+	}
+
+	data := make(map[string]string)
+	data["cluster-config.json"] = string(byteData)
+	cm := new(v1.ConfigMap)
+	cm.Data = data
+	cm.Name = "cluster-info"
+	clientset := kc.clientset
+
+	_, err = clientset.CoreV1().ConfigMaps("kube-system").Create(context.TODO(), cm, metav1.CreateOptions{})
+	if err != nil {
+		kc.logger.Error("Error creating config map", zap.Error(err))
+		return err
+	}
+	return nil
+}
