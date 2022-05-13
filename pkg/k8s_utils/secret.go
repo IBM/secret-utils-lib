@@ -31,36 +31,46 @@ import (
 func GetSecretData(kc KubernetesClient) (string, string, error) {
 	kc.logger.Info("Trying to fetch ibm-cloud-credentials secret")
 
-	namespace := kc.GetNameSpace()
-	clientset := kc.clientset
-	var dataname string
-	var secretname string
-	// Fetching secret
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), utils.IBMCLOUD_CREDENTIALS_SECRET, v1.GetOptions{})
+	data, err := GetSecret(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, utils.CLOUD_PROVIDER_ENV)
 	if err == nil {
-		dataname = utils.CLOUD_PROVIDER_ENV
-		secretname = utils.IBMCLOUD_CREDENTIALS_SECRET
-	} else {
-		kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.IBMCLOUD_CREDENTIALS_SECRET))
-		kc.logger.Info("Trying to fetch storage-secret-store secret")
-		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), utils.STORAGE_SECRET_STORE_SECRET, v1.GetOptions{})
-		if err != nil {
-			kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.STORAGE_SECRET_STORE_SECRET))
-			return "", "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
-		}
-		dataname = utils.SECRET_STORE_FILE
-		secretname = utils.STORAGE_SECRET_STORE_SECRET
+		kc.logger.Info("Successfully fetched secret data", zap.String("Secret", utils.IBMCLOUD_CREDENTIALS_SECRET))
+		return data, utils.IBMCLOUD_CREDENTIALS_SECRET, nil
+	}
+
+	kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.IBMCLOUD_CREDENTIALS_SECRET))
+	kc.logger.Info("Trying to fetch storage-secret-store secret")
+	data, err = GetSecret(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
+	if err != nil {
+		kc.logger.Error("Unable to find secret", zap.Error(err), zap.String("Secret name", utils.STORAGE_SECRET_STORE_SECRET))
+		return "", "", err
+	}
+
+	kc.logger.Info("Successfully fetched secret data", zap.String("Secret", utils.STORAGE_SECRET_STORE_SECRET))
+	return data, utils.STORAGE_SECRET_STORE_SECRET, nil
+}
+
+// GetSecret ...
+func GetSecret(kc KubernetesClient, secretname, dataname string) (string, error) {
+	kc.logger.Info("Fetching config map")
+
+	clientset := kc.GetClientSet()
+	namespace := kc.GetNameSpace()
+
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretname, v1.GetOptions{})
+	if err != nil {
+		kc.logger.Error("Error fetching cluster-info configmap", zap.Error(err))
+		return "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
 	}
 
 	if secret.Data == nil {
 		kc.logger.Error("No data found in the secret")
-		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrEmptyDataInSecret, secretname)}
+		return "", utils.Error{Description: fmt.Sprintf(utils.ErrEmptyDataInSecret, secretname)}
 	}
 
 	byteData, ok := secret.Data[dataname]
 	if !ok {
-		kc.logger.Error("Expected data not found in the secret")
-		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, dataname, secretname)}
+		kc.logger.Error("cluster-config.json is not present")
+		return "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, dataname, secretname)}
 	}
 
 	sEnc := b64.StdEncoding.EncodeToString(byteData)
@@ -68,9 +78,9 @@ func GetSecretData(kc KubernetesClient) (string, string, error) {
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
 	if err != nil {
 		kc.logger.Error("Error decoding the secret data", zap.Error(err), zap.String("Secret name", secretname), zap.String("Data name", dataname))
-		return "", "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
+		return "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
 	}
 
 	kc.logger.Info("Successfully fetched secret data")
-	return string(sDec), secretname, nil
+	return string(sDec), nil
 }
