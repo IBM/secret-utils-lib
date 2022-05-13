@@ -61,6 +61,31 @@ func GetClusterInfo(kc k8s_utils.KubernetesClient, logger *zap.Logger) (ClusterC
 // FrameTokenExchangeURL ...
 func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, logger *zap.Logger) (string, error) {
 	logger.Info("Forming token exchange URL")
+
+	secret, err := k8s_utils.GetSecret(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
+	if err == nil {
+		secretConfig, err := ParseConfig(logger, secret)
+		if err == nil {
+			if secretConfig.VPC.IKSTokenExchangePrivateURL != "" {
+				if !strings.Contains(secretConfig.VPC.IKSTokenExchangePrivateURL, ".test.") {
+					logger.Info("Env - Production")
+					return utils.ProdTokenExchangeURL, nil
+				}
+				logger.Info("Env - Stage")
+				return utils.StageTokenExchangeURL, nil
+			}
+			if secretConfig.VPC.G2TokenExchangeURL != "" {
+				if !strings.Contains(secretConfig.VPC.IKSTokenExchangePrivateURL, "stage") {
+					logger.Info("Env - Production")
+					return utils.ProdTokenExchangeURL, nil
+				}
+				logger.Info("Env - Stage")
+				return utils.StageTokenExchangeURL, nil
+			}
+		}
+	}
+
+	logger.Info("Unable to fetch token exchange URL using secret, fetching using cluster info")
 	cc, err := GetClusterInfo(kc, logger)
 	if err != nil {
 		// If the cluster-info is not found (this is the case of an unmanaged cluster, )
