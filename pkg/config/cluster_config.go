@@ -33,18 +33,9 @@ const (
 	clusterConfigName = "cluster-config.json"
 	// stageMasterURLsubstr ...
 	stageMasterURLsubstr = ".test."
-	// satellite ...
-	satellite clusterType = "satellite"
-	// ipi ...
-	ipi clusterType = "ipi"
-	// managed ...
-	managed clusterType = "managed"
 	// tokenExchangePath ...
 	tokenExchangePath = "/identity/token"
 )
-
-// clusterType refers to type of a cluster
-type clusterType string
 
 // ClusterConfig ...
 type ClusterConfig struct {
@@ -70,19 +61,6 @@ func GetClusterInfo(kc k8s_utils.KubernetesClient, logger *zap.Logger) (ClusterC
 	return cc, nil
 }
 
-// getClusterType ...
-func getClusterType() clusterType {
-	if os.Getenv("IS_SATELLITE") == "True" {
-		return satellite
-	}
-
-	if iksEnabled := os.Getenv("IKS_ENABLED"); strings.ToLower(iksEnabled) == "true" {
-		return managed
-	}
-
-	return ipi
-}
-
 // getTokenExchangeURLfromSecret ...
 func getTokenExchangeURLfromSecret(secret string, logger *zap.Logger) (string, error) {
 	logger.Info("Framing token exchange URL using storage-secret-store")
@@ -92,17 +70,12 @@ func getTokenExchangeURLfromSecret(secret string, logger *zap.Logger) (string, e
 		return "", err
 	}
 
-	clustertype := getClusterType()
-	logger.Info("Fetched cluster type", zap.String("ClusterType", string(clustertype)))
-
 	var url string
-	switch clustertype {
-	case satellite:
+	if os.Getenv("IS_SATELLITE") == "True" {
+		logger.Info("Cluster-type: Satellite")
 		// Using provided url for token exchange if cluster type = satellite
 		url = secretConfig.VPC.G2TokenExchangeURL
-	case ipi:
-		url = utils.ProdIAMURL
-	case managed:
+	} else {
 		if !strings.Contains(secretConfig.VPC.G2TokenExchangeURL, "stage") {
 			url = utils.ProdIAMURL
 		} else {
@@ -113,6 +86,7 @@ func getTokenExchangeURLfromSecret(secret string, logger *zap.Logger) (string, e
 	if url == "" {
 		return "", utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
 	}
+
 	// Appending the base URL and token exchange path
 	url = url + tokenExchangePath
 
@@ -120,14 +94,14 @@ func getTokenExchangeURLfromSecret(secret string, logger *zap.Logger) (string, e
 }
 
 // FrameTokenExchangeURL ...
-func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, logger *zap.Logger) (string, error) {
+func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, logger *zap.Logger) string {
 	logger.Info("Forming token exchange URL")
 
 	secret, err := k8s_utils.GetSecret(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
 		url, err := getTokenExchangeURLfromSecret(secret, logger)
 		if err == nil {
-			return url, nil
+			return url
 		}
 	}
 
@@ -135,14 +109,14 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, logger *zap.Logger) (s
 	cc, err := GetClusterInfo(kc, logger)
 	if err != nil {
 		logger.Error("Error fetching cluster master URL", zap.Error(err))
-		return (utils.PublicIAMURL + tokenExchangePath), nil
+		return (utils.PublicIAMURL + tokenExchangePath)
 	}
 
 	if !strings.Contains(cc.MasterURL, stageMasterURLsubstr) {
 		logger.Info("Env - Production")
-		return (utils.ProdIAMURL + tokenExchangePath), nil
+		return (utils.ProdIAMURL + tokenExchangePath)
 	}
 
 	logger.Info("Env - Stage")
-	return (utils.StageIAMURL + tokenExchangePath), nil
+	return (utils.StageIAMURL + tokenExchangePath)
 }
