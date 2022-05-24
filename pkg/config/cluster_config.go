@@ -95,7 +95,6 @@ func getTokenExchangeURLfromSecret(secret string, logger *zap.Logger) (string, e
 
 // FrameTokenExchangeURL ...
 func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, logger *zap.Logger) string {
-	logger.Info("Forming token exchange URL")
 
 	secret, err := k8s_utils.GetSecret(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
