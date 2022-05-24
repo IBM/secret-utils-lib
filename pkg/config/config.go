@@ -130,6 +130,7 @@ type APIConfig struct {
 
 // ParseConfig loads the config from file
 func ParseConfig(logger *zap.Logger, data string) (*Config, error) {
+	logger.Info("Parsing config")
 	configData := new(Config)
 	_, err := toml.Decode(data, configData)
 	if err != nil {
@@ -143,5 +144,6 @@ func ParseConfig(logger *zap.Logger, data string) (*Config, error) {
 		return nil, utils.Error{Description: utils.ErrFetchingENV, BackendError: err.Error()}
 	}
 
+	logger.Info("Successfully parsed config")
 	return configData, nil
 }

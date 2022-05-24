@@ -31,6 +31,8 @@ type ComputeIdentityAuthenticator struct {
 
 // NewComputeIdentityAuthenticator ...
 func NewComputeIdentityAuthenticator(profileID string, logger *zap.Logger) *ComputeIdentityAuthenticator {
+	logger.Info("Initializing compute identity authenticator")
+	defer logger.Info("Initialized compute identity authenticator")
 	ca := new(ComputeIdentityAuthenticator)
 	ca.authenticator = new(core.ContainerAuthenticator)
 	ca.authenticator.IAMProfileID = profileID
@@ -40,11 +42,13 @@ func NewComputeIdentityAuthenticator(profileID string, logger *zap.Logger) *Comp
 
 // GetToken ...
 func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (string, uint64, error) {
+	ca.logger.Info("Fetching IAM token using compute identity authenticator")
 	var iamtoken string
 	var err error
 	var tokenlifetime uint64
 
 	if !freshTokenRequired {
+		ca.logger.Info("Retrieving existing token")
 		iamtoken, err = ca.authenticator.GetToken()
 		if err != nil {
 			ca.logger.Error("Error fetching existing token", zap.Error(err))
@@ -53,7 +57,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
-			ca.logger.Info("Fetched iam token and token lifetime using profile ID")
+			ca.logger.Info("Fetched iam token and token lifetime successfully")
 			return iamtoken, tokenlifetime, nil
 		}
 		ca.logger.Error("Error fetching token lifetime of existing token", zap.Error(err))
@@ -78,7 +82,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		return "", tokenlifetime, utils.Error{Description: "Error fetching token lifetime", BackendError: err.Error()}
 	}
 
-	ca.logger.Info("Fetched IAM token and token lifetime using profile ID")
+	ca.logger.Info("Successfully fetched IAM token and token lifetime")
 	return iamtoken, tokenlifetime, nil
 }
 
