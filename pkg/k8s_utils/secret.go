@@ -56,18 +56,15 @@ func GetSecret(kc KubernetesClient, secretname, dataname string) (string, error)
 
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretname, v1.GetOptions{})
 	if err != nil {
-		kc.logger.Error("Error fetching secret", zap.Error(err), zap.String("secret-name", secretname))
 		return "", utils.Error{Description: utils.ErrFetchingSecrets, BackendError: err.Error()}
 	}
 
 	if secret.Data == nil {
-		kc.logger.Error("No data found in the secret")
 		return "", utils.Error{Description: fmt.Sprintf(utils.ErrEmptyDataInSecret, secretname)}
 	}
 
 	byteData, ok := secret.Data[dataname]
 	if !ok {
-		kc.logger.Error("Expected data not present in the secret", zap.String("secret-name", secretname), zap.String("dataname", dataname))
 		return "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, dataname, secretname)}
 	}
 
@@ -75,7 +72,6 @@ func GetSecret(kc KubernetesClient, secretname, dataname string) (string, error)
 
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
 	if err != nil {
-		kc.logger.Error("Error decoding the secret data", zap.Error(err), zap.String("secret-name", secretname), zap.String("data-name", dataname))
 		return "", utils.Error{Description: fmt.Sprintf(utils.ErrFetchingSecretData, secretname, dataname), BackendError: err.Error()}
 	}
 
