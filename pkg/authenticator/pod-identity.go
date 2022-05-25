@@ -53,7 +53,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 
 		tokenlifetime, err = token.CheckTokenLifeTime(iamtoken)
 		if err == nil {
-			ca.logger.Info("Fetched iam token from cache", zap.Uint64("token-life-time", tokenlifetime))
+			ca.logger.Info("Fetched iam token from cache", zap.Uint64("token-life-time-in-seconds", tokenlifetime))
 			return iamtoken, tokenlifetime, nil
 		}
 	}
@@ -76,7 +76,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		return "", tokenlifetime, utils.Error{Description: "Error fetching token lifetime", BackendError: err.Error()}
 	}
 
-	ca.logger.Info("Fetched fresh iam token", zap.Uint64("token-life-time", tokenlifetime))
+	ca.logger.Info("Fetched fresh iam token", zap.Uint64("token-life-time-in-seconds", tokenlifetime))
 	return iamtoken, tokenlifetime, nil
 }
 
