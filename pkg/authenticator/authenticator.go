@@ -41,52 +41,91 @@ type Authenticator interface {
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
-func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient) (Authenticator, string, error) {
+func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, providerName string, secretKey ...string) (Authenticator, string, error) {
+	logger.Info("Initializing authenticator")
 
-	// Fetching secret data (ibm-cloud-credentials or storage-secret-store)
-	secretData, secretname, err := k8s_utils.GetSecretData(kc)
+	if len(secretKey) != 0 {
+		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKey[0])
+		if err == nil {
+			return initAuthenticatorForIBMCloudCredentials(logger, data)
+		}
+
+		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, secretKey[0])
+		if err != nil {
+			logger.Error("Error initializing authenticator", zap.Error(err))
+			return nil, "", err
+		}
+		logger.Info("Initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("key-name", secretKey[0]))
+		return NewIamAuthenticator(data, logger), utils.DEFAULT, nil
+	}
+
+	data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, utils.CLOUD_PROVIDER_ENV)
+	if err == nil {
+		return initAuthenticatorForIBMCloudCredentials(logger, data)
+	}
+
+	logger.Warn("Unable to fetch ibm-cloud-credentials", zap.Error(err), zap.String("key-name", secretKey[0]))
+	data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err != nil {
-		logger.Error("Error fetching secret", zap.Error(err))
+		logger.Error("Error initializing authenticator", zap.Error(err))
 		return nil, "", err
 	}
 
-	if secretname == utils.IBMCLOUD_CREDENTIALS_SECRET {
-		credentialsmap, err := parseIBMCloudCredentials(logger, secretData)
-		if err != nil {
-			logger.Error("Error parsing credentials", zap.Error(err))
-			return nil, "", err
-		}
-		var authenticator Authenticator
-		credentialType := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
-		switch credentialType {
-		case utils.IAM:
-			defaultSecret = credentialsmap[utils.IBMCLOUD_APIKEY]
-			authenticator = NewIamAuthenticator(defaultSecret, logger)
-		case utils.PODIDENTITY:
-			defaultSecret = credentialsmap[utils.IBMCLOUD_PROFILEID]
-			authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
-		}
-		logger.Info("Initialized authenticator", zap.String("secret-used", utils.IBMCLOUD_CREDENTIALS_SECRET), zap.String("type", credentialType))
-		return authenticator, credentialType, nil
+	return initAuthenticatorForStorageSecretStore(logger, providerName, data)
+}
+
+// initAuthenticatorForIBMCloudCredentials ...
+func initAuthenticatorForIBMCloudCredentials(logger *zap.Logger, data string) (Authenticator, string, error) {
+	credentialsmap, err := parseIBMCloudCredentials(logger, data)
+	if err != nil {
+		logger.Error("Error parsing credentials", zap.Error(err))
+		return nil, "", err
 	}
 
-	// Parse it the secret is storage-secret-store
-	conf, err := config.ParseConfig(logger, secretData)
+	var authenticator Authenticator
+	credentialType := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
+	switch credentialType {
+	case utils.IAM:
+		defaultSecret = credentialsmap[utils.IBMCLOUD_APIKEY]
+		authenticator = NewIamAuthenticator(defaultSecret, logger)
+	case utils.PODIDENTITY:
+		defaultSecret = credentialsmap[utils.IBMCLOUD_PROFILEID]
+		authenticator = NewComputeIdentityAuthenticator(defaultSecret, logger)
+	}
+
+	logger.Info("Successfully initialized authenticator", zap.String("secret-name", utils.IBMCLOUD_CREDENTIALS_SECRET), zap.String("auth-type", credentialType))
+	return authenticator, credentialType, nil
+}
+
+// initAuthenticatorForStorageSecretStore ...
+func initAuthenticatorForStorageSecretStore(logger *zap.Logger, providerName, data string) (Authenticator, string, error) {
+	conf, err := config.ParseConfig(logger, data)
 	if err != nil {
 		logger.Error("Error parsing config", zap.Error(err))
 		return nil, "", err
 	}
 
-	// TODO - decide between choosing Bluemix / VPC api key
-	if conf.VPC.G2APIKey == "" {
-		logger.Error("Empty api key read from the secret", zap.Error(err))
+	var encryption bool
+	var apiKey string
+	switch providerName {
+	case "VPC":
+		encryption = conf.VPC.Encryption
+		apiKey = conf.VPC.G2APIKey
+	case "Bluemix":
+		encryption = conf.Bluemix.Encryption
+		apiKey = conf.Bluemix.IamAPIKey
+	case "Softlayer":
+		apiKey = conf.Softlayer.SoftlayerAPIKey
+	}
+
+	if apiKey == "" {
+		logger.Error("Empty api key read from the secret", zap.String("provider", providerName))
 		return nil, "", utils.Error{Description: utils.ErrAPIKeyNotProvided}
 	}
 
-	defaultSecret = conf.VPC.G2APIKey
 	authenticator := NewIamAuthenticator(defaultSecret, logger)
-	logger.Info("Initialized authenticator", zap.String("secret-used", utils.STORAGE_SECRET_STORE_SECRET))
-	authenticator.SetEncryption(conf.VPC.Encryption)
+	authenticator.SetEncryption(encryption)
+	logger.Info("Successfully initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("auth-type", utils.DEFAULT))
 	return authenticator, utils.DEFAULT, nil
 }
 
