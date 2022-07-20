@@ -27,17 +27,17 @@ type SecretProviderInterface interface {
 	GetDefaultIAMToken(freshTokenRequired bool) (string, uint64, error)
 
 	// GetRIAASEndpoint ...
-	GetRIAASEndpoint() (string, error)
+	//GetRIAASEndpoint() (string, error)
 
 	// GetPrivateRIAASEndpoint ...
-	GetPrivateRIAASEndpoint() (string, error)
+	//GetPrivateRIAASEndpoint() (string, error)
 
 	// GetContainerRoute ...
-	GetContainerRoute() (string, error)
+	//GetContainerRoute() (string, error)
 
 	// GetPrivateContainerRoute ...
-	GetPrivateContainerRoute() (string, error)
+	//GetPrivateContainerRoute() (string, error)
 
 	// GetResourceGroupID ...
-	GetResourceGroupID() (string, error)
+	//GetResourceGroupID() (string, error)
 }
