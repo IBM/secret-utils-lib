@@ -50,6 +50,7 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, provide
 			return initAuthenticatorForIBMCloudCredentials(logger, data)
 		}
 
+		logger.Warn("Unable to fetch ibm-cloud-credentials, fetching from storage-secret-store", zap.Error(err))
 		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, secretKey[0])
 		if err != nil {
 			logger.Error("Error initializing authenticator", zap.Error(err))
@@ -116,6 +117,8 @@ func initAuthenticatorForStorageSecretStore(logger *zap.Logger, providerName, da
 		apiKey = conf.Bluemix.IamAPIKey
 	case "Softlayer":
 		apiKey = conf.Softlayer.SoftlayerAPIKey
+	default:
+		return nil, "", utils.Error{Description: utils.ErrInvalidProviderType}
 	}
 
 	if apiKey == "" {
