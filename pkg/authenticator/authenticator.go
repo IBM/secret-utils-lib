@@ -109,13 +109,13 @@ func initAuthenticatorForStorageSecretStore(logger *zap.Logger, providerName, da
 	var encryption bool
 	var apiKey string
 	switch providerName {
-	case "VPC":
+	case utils.VPC:
 		encryption = conf.VPC.Encryption
 		apiKey = conf.VPC.G2APIKey
-	case "Bluemix":
+	case utils.Bluemix:
 		encryption = conf.Bluemix.Encryption
 		apiKey = conf.Bluemix.IamAPIKey
-	case "Softlayer":
+	case utils.Softlayer:
 		apiKey = conf.Softlayer.SoftlayerAPIKey
 	default:
 		return nil, "", utils.Error{Description: utils.ErrInvalidProviderType}
