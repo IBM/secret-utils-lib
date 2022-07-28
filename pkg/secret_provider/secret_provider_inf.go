@@ -21,23 +21,23 @@ package secret_provider
 type SecretProviderInterface interface {
 
 	// GetIAMToken ...
-	GetIAMToken(secret string, freshTokenRequired bool) (string, uint64, error)
+	GetIAMToken(reasonForCall, secret string, freshTokenRequired bool) (string, uint64, error)
 
 	// GetDefaultIAMToken ...
-	GetDefaultIAMToken(freshTokenRequired bool) (string, uint64, error)
+	GetDefaultIAMToken(reasonForCall string, freshTokenRequired bool) (string, uint64, error)
 
 	// GetRIAASEndpoint ...
-	//GetRIAASEndpoint() (string, error)
+	GetRIAASEndpoint(readConfig bool) (string, error)
 
 	// GetPrivateRIAASEndpoint ...
-	//GetPrivateRIAASEndpoint() (string, error)
+	GetPrivateRIAASEndpoint(readConfig bool)
 
-	// GetContainerRoute ...
-	//GetContainerRoute() (string, error)
+	// GetContainerAPIRoute ...
+	GetContainerAPIRoute(readConfig bool) (string, error)
 
-	// GetPrivateContainerRoute ...
-	//GetPrivateContainerRoute() (string, error)
+	// GetPrivateContainerAPIRoute ...
+	GetPrivateContainerAPIRoute(readConfig bool) (string, error)
 
 	// GetResourceGroupID ...
-	//GetResourceGroupID() (string, error)
+	GetResourceGroupID() string
 }

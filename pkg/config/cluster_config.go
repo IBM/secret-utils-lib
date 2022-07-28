@@ -67,7 +67,7 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 	// Fetch token exchange URL from cloud-conf
 	cloudConf, err := GetCloudConf(logger, kc)
 	if err == nil && cloudConf.TokenExchangeURL != "" {
-		return cloudConf.TokenExchangeURL
+		return cloudConf.TokenExchangeURL + tokenExchangePath
 	}
 
 	logger.Info("Unable to fetch token exchange URL from cloud-conf")
