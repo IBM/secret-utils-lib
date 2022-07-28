@@ -30,7 +30,7 @@ type SecretProviderInterface interface {
 	GetRIAASEndpoint(readConfig bool) (string, error)
 
 	// GetPrivateRIAASEndpoint ...
-	GetPrivateRIAASEndpoint(readConfig bool)
+	GetPrivateRIAASEndpoint(readConfig bool) (string, error)
 
 	// GetContainerAPIRoute ...
 	GetContainerAPIRoute(readConfig bool) (string, error)
