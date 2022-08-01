@@ -27,9 +27,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// defaultSecret is the default api key or profile ID fetched from the secret
-var defaultSecret string
-
 // Authenticator ...
 type Authenticator interface {
 	GetToken(freshTokenRequired bool) (string, uint64, error)
@@ -65,7 +62,7 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, provide
 		return initAuthenticatorForIBMCloudCredentials(logger, data)
 	}
 
-	logger.Warn("Unable to fetch ibm-cloud-credentials", zap.Error(err), zap.String("key-name", secretKey[0]))
+	logger.Warn("Unable to fetch ibm-cloud-credentials", zap.Error(err), zap.String("key-name", utils.CLOUD_PROVIDER_ENV))
 	data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err != nil {
 		logger.Error("Error initializing authenticator", zap.Error(err))
@@ -84,6 +81,7 @@ func initAuthenticatorForIBMCloudCredentials(logger *zap.Logger, data string) (A
 	}
 
 	var authenticator Authenticator
+	var defaultSecret string
 	credentialType := credentialsmap[utils.IBMCLOUD_AUTHTYPE]
 	switch credentialType {
 	case utils.IAM:
@@ -126,7 +124,7 @@ func initAuthenticatorForStorageSecretStore(logger *zap.Logger, providerName, da
 		return nil, "", utils.Error{Description: utils.ErrAPIKeyNotProvided}
 	}
 
-	authenticator := NewIamAuthenticator(defaultSecret, logger)
+	authenticator := NewIamAuthenticator(apiKey, logger)
 	authenticator.SetEncryption(encryption)
 	logger.Info("Successfully initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("auth-type", utils.DEFAULT))
 	return authenticator, utils.DEFAULT, nil
