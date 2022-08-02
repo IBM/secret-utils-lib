@@ -42,6 +42,7 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, provide
 	logger.Info("Initializing authenticator")
 
 	if len(secretKey) != 0 {
+		logger.Info("Key provided", zap.String("Key", secretKey[0]))
 		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKey[0])
 		if err == nil {
 			return initAuthenticatorForIBMCloudCredentials(logger, data)
