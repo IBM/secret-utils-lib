@@ -35,6 +35,8 @@ const (
 	stageMasterURLsubstr = ".test."
 	// tokenExchangePath ...
 	tokenExchangePath = "/identity/token"
+	// constTrue ...
+	constTrue = "True"
 )
 
 // ClusterConfig ...
@@ -109,8 +111,8 @@ func GetTokenExchangeURLfromStorageSecretStore(config Config, providerType strin
 	}
 
 	// If the cluster is not satellite cluster, use PROD or STAGE URLs
-	if os.Getenv("IS_SATELLITE") != "True" {
-		if !strings.Contains(url, "stage") {
+	if os.Getenv("IS_SATELLITE") != constTrue {
+		if !strings.Contains(url, "stage") && !strings.Contains(url, "test") {
 			url = utils.ProdIAMURL
 		} else {
 			url = utils.StageIAMURL

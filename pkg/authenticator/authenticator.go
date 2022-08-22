@@ -41,6 +41,9 @@ type Authenticator interface {
 func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, providerName string, secretKey ...string) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
+	// If a secretKey (key in the k8s secret) is provided, first look for the key in ibm-cloud-credentials
+	// If it is not found ibm-cloud-credentials, look for it in storage-secret-store
+	// If it is not found in either of the secrets, return error
 	if len(secretKey) != 0 {
 		logger.Info("Key provided", zap.String("Key", secretKey[0]))
 		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKey[0])
@@ -58,11 +61,14 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, provide
 		return NewIamAuthenticator(data, logger), utils.DEFAULT, nil
 	}
 
+	// If the secretKey is not provided,
+	// Read ibm-credentials.env key from ibm-cloud-credentials
 	data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, utils.CLOUD_PROVIDER_ENV)
 	if err == nil {
 		return initAuthenticatorForIBMCloudCredentials(logger, data)
 	}
 
+	// If ibm-cloud-credentials does not exist, read slclient.toml from storage-secret-store
 	logger.Warn("Unable to fetch ibm-cloud-credentials", zap.Error(err), zap.String("key-name", utils.CLOUD_PROVIDER_ENV))
 	data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err != nil {
