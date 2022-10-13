@@ -48,7 +48,13 @@ As seen above, authenticator can be initialized using the `NewAuthenticator` met
 - If specific key is provided in ibm-cloud-credentials, it must be provided as base64 encoded value of [this](https://github.com/IBM/secret-utils-lib/blob/master/secrets/ibm-cloud-credentials/iam-cloud-provider.env) format itself and the k8s secret looks like [this](https://github.com/IBM/secret-utils-lib/blob/master/secrets/ibm-cloud-credentials/ibm-cloud-credentials-with-secret-key.yaml).
 - If specific key is provided in storage-secret-store, it must be provided as base64 encoded value of api-key and the k8s secret looks like [this](https://github.com/IBM/secret-utils-lib/blob/master/secrets/storage-secret-store/storage-secret-store-with-key.yaml).
 - **Note:** The library first looks for the `secretKey` in `ibm-cloud-credentials`, if it doesn't exist there, it is searched in `storage-secret-store`. So, if the application using this library has a use case of using `secretKey`, we recommend to name them differently for ibm-cloud-credentials and storage-secret-store.
+- The client functions [here](https://github.com/IBM/secret-utils-lib/blob/master/client/client.go) show how the authenticator can be initialised and used.
 
+### Fetching the token.
+
+IAM token for the trusted-profile-id/api-key can be fetched by calling the `GetToken` method with reference to the initialized authenticator. Please refer the [client code examples](https://github.com/IBM/secret-utils-lib/blob/master/client/client.go).
+
+Methods supported by the authenticator.
 ```
 // GetToken returns iam token, token lifetime and error if any
 // if freshTokenRequired is set to true, a call is made to iam to fetch a fresh token and returned

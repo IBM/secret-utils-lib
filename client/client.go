@@ -21,11 +21,10 @@ func main() {
 	}
 
 	clientForDefaultAuthenticator(logger, utils.VPC, cwd)
-	//clientForDefaultAuthenticator(logger, utils.Bluemix, cwd)
-	//clientForDefaultAuthenticator(logger, utils.Softlayer, cwd)
-
-	//clientForIAMAuthenticator(logger, cwd)
-	//clientForPodIdentityAuthenticator(logger, cwd)
+	clientForDefaultAuthenticator(logger, utils.Bluemix, cwd)
+	clientForDefaultAuthenticator(logger, utils.Softlayer, cwd)
+	clientForIAMAuthenticator(logger, cwd)
+	clientForPodIdentityAuthenticator(logger, cwd)
 }
 
 // setUpLogger ...
