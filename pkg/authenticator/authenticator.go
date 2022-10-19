@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	providerType string = "ProviderType"
-	secretKey    string = "SecretKey"
+	ProviderType string = "ProviderType"
+	SecretKey    string = "SecretKey"
 )
 
 // Authenticator ...
@@ -52,8 +52,8 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optiona
 	var secretKeyName, providerName string
 	var secretKeyExists, providerExists bool
 	if len(optionalArgs) != 0 {
-		secretKeyName, secretKeyExists = optionalArgs[0][secretKey]
-		providerName, providerExists = optionalArgs[0][providerType]
+		secretKeyName, secretKeyExists = optionalArgs[0][SecretKey]
+		providerName, providerExists = optionalArgs[0][ProviderType]
 	}
 
 	if secretKeyExists {
