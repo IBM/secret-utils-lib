@@ -38,26 +38,26 @@ type Authenticator interface {
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
-func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, providerName string, secretKey ...string) (Authenticator, string, error) {
+func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optionalArgs ...string) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// If a secretKey (key in the k8s secret) is provided, first look for the key in ibm-cloud-credentials
 	// If it is not found ibm-cloud-credentials, look for it in storage-secret-store
 	// If it is not found in either of the secrets, return error
-	if len(secretKey) != 0 {
-		logger.Info("Key provided", zap.String("Key", secretKey[0]))
-		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKey[0])
+	if len(optionalArgs) != 0 && !isProviderType(optionalArgs[0]) {
+		logger.Info("Key provided", zap.String("Key", optionalArgs[0]))
+		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, optionalArgs[0])
 		if err == nil {
 			return initAuthenticatorForIBMCloudCredentials(logger, data)
 		}
 
 		logger.Warn("Unable to fetch ibm-cloud-credentials, fetching from storage-secret-store", zap.Error(err))
-		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, secretKey[0])
+		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, optionalArgs[0])
 		if err != nil {
 			logger.Error("Error initializing authenticator", zap.Error(err))
 			return nil, "", err
 		}
-		logger.Info("Initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("key-name", secretKey[0]))
+		logger.Info("Initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("key-name", optionalArgs[0]))
 		return NewIamAuthenticator(data, logger), utils.DEFAULT, nil
 	}
 
@@ -76,7 +76,15 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, provide
 		return nil, "", err
 	}
 
-	return initAuthenticatorForStorageSecretStore(logger, providerName, data)
+	if len(optionalArgs) != 0 {
+		return initAuthenticatorForStorageSecretStore(logger, optionalArgs[0], data)
+	}
+	return initAuthenticatorForStorageSecretStore(logger, utils.VPC, data)
+}
+
+// isProviderType ...
+func isProviderType(arg string) bool {
+	return (arg == utils.VPC || arg == utils.Bluemix || arg == utils.Softlayer)
 }
 
 // initAuthenticatorForIBMCloudCredentials ...

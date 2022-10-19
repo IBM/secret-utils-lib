@@ -20,7 +20,7 @@ type FakeSecretProvider struct {
 }
 
 // GetDefaultIAMToken ...
-func (fs *FakeSecretProvider) GetDefaultIAMToken(reasonForCall string, freshTokenRequired bool) (string, uint64, error) {
+func (fs *FakeSecretProvider) GetDefaultIAMToken(freshTokenRequired bool, reasonForCall ...string) (string, uint64, error) {
 	if freshTokenRequired {
 		return "token", 1000, nil
 	}
@@ -28,7 +28,7 @@ func (fs *FakeSecretProvider) GetDefaultIAMToken(reasonForCall string, freshToke
 }
 
 // GetIAMToken ...
-func (fs *FakeSecretProvider) GetIAMToken(reasonForCall, secret string, freshTokenRequired bool) (string, uint64, error) {
+func (fs *FakeSecretProvider) GetIAMToken(secret string, freshTokenRequired bool, reasonForCall ...string) (string, uint64, error) {
 	if freshTokenRequired {
 		return "token", 1000, nil
 	}
