@@ -27,6 +27,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	providerType string = "ProviderType"
+	secretKey    string = "SecretKey"
+)
+
 // Authenticator ...
 type Authenticator interface {
 	GetToken(freshTokenRequired bool) (string, uint64, error)
@@ -38,26 +43,33 @@ type Authenticator interface {
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
-func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optionalArgs ...string) (Authenticator, string, error) {
+func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optionalArgs ...map[string]string) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
 	// If a secretKey (key in the k8s secret) is provided, first look for the key in ibm-cloud-credentials
 	// If it is not found ibm-cloud-credentials, look for it in storage-secret-store
 	// If it is not found in either of the secrets, return error
-	if len(optionalArgs) != 0 && !isProviderType(optionalArgs[0]) {
-		logger.Info("Key provided", zap.String("Key", optionalArgs[0]))
-		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, optionalArgs[0])
+	var secretKeyName, providerName string
+	var secretKeyExists, providerExists bool
+	if len(optionalArgs) != 0 {
+		secretKeyName, secretKeyExists = optionalArgs[0][secretKey]
+		providerName, providerExists = optionalArgs[0][providerType]
+	}
+
+	if secretKeyExists {
+		logger.Info("Key provided", zap.String("Key", secretKeyName))
+		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKeyName)
 		if err == nil {
 			return initAuthenticatorForIBMCloudCredentials(logger, data)
 		}
 
 		logger.Warn("Unable to fetch ibm-cloud-credentials, fetching from storage-secret-store", zap.Error(err))
-		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, optionalArgs[0])
+		data, err = k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, secretKeyName)
 		if err != nil {
 			logger.Error("Error initializing authenticator", zap.Error(err))
 			return nil, "", err
 		}
-		logger.Info("Initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("key-name", optionalArgs[0]))
+		logger.Info("Initialized authenticator", zap.String("secret-name", utils.STORAGE_SECRET_STORE_SECRET), zap.String("key-name", secretKeyName))
 		return NewIamAuthenticator(data, logger), utils.DEFAULT, nil
 	}
 
@@ -76,8 +88,8 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optiona
 		return nil, "", err
 	}
 
-	if len(optionalArgs) != 0 {
-		return initAuthenticatorForStorageSecretStore(logger, optionalArgs[0], data)
+	if providerExists {
+		return initAuthenticatorForStorageSecretStore(logger, providerName, data)
 	}
 	return initAuthenticatorForStorageSecretStore(logger, utils.VPC, data)
 }
