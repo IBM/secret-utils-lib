@@ -20,6 +20,7 @@ package k8s_utils
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,5 +45,5 @@ func GetSecretData(kc KubernetesClient, secretName, secretKey string) (string, e
 		return "", utils.Error{Description: fmt.Sprintf(utils.ErrExpectedDataNotFound, secretKey, secretName)}
 	}
 
-	return string(byteData), nil
+	return strings.TrimSuffix(string(byteData), "\n"), nil
 }
