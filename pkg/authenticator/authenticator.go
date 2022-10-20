@@ -46,9 +46,7 @@ type Authenticator interface {
 func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optionalArgs ...map[string]string) (Authenticator, string, error) {
 	logger.Info("Initializing authenticator")
 
-	// If a secretKey (key in the k8s secret) is provided, first look for the key in ibm-cloud-credentials
-	// If it is not found ibm-cloud-credentials, look for it in storage-secret-store
-	// If it is not found in either of the secrets, return error
+	// Check if secretKey or providerType is provided
 	var secretKeyName, providerName string
 	var secretKeyExists, providerExists bool
 	if len(optionalArgs) != 0 {
@@ -56,6 +54,9 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optiona
 		providerName, providerExists = optionalArgs[0][ProviderType]
 	}
 
+	// If a secretKey (key in the k8s secret) is provided, first look for the key in ibm-cloud-credentials
+	// If it is not found ibm-cloud-credentials, look for it in storage-secret-store
+	// If it is not found in either of the secrets, return error
 	if secretKeyExists {
 		logger.Info("Key provided", zap.String("Key", secretKeyName))
 		data, err := k8s_utils.GetSecretData(kc, utils.IBMCLOUD_CREDENTIALS_SECRET, secretKeyName)
@@ -88,6 +89,7 @@ func NewAuthenticator(logger *zap.Logger, kc k8s_utils.KubernetesClient, optiona
 		return nil, "", err
 	}
 
+	// If providerType is given, check for the same in storage secret store
 	if providerExists {
 		return initAuthenticatorForStorageSecretStore(logger, providerName, data)
 	}
