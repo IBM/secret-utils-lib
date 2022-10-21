@@ -8,6 +8,7 @@ package secretprovider
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -23,8 +24,8 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SecretProviderClient interface {
 	NewSecretProvider(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*Empty, error)
-	GetIAMToken(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*IAMToken, error)
-	GetDefaultIAMToken(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*IAMToken, error)
+	GetIAMToken(ctx context.Context, in *Request, opts ...grpc.CallOption) (*IAMToken, error)
+	GetDefaultIAMToken(ctx context.Context, in *Request, opts ...grpc.CallOption) (*IAMToken, error)
 }
 
 type secretProviderClient struct {
@@ -44,7 +45,7 @@ func (c *secretProviderClient) NewSecretProvider(ctx context.Context, in *InitRe
 	return out, nil
 }
 
-func (c *secretProviderClient) GetIAMToken(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*IAMToken, error) {
+func (c *secretProviderClient) GetIAMToken(ctx context.Context, in *Request, opts ...grpc.CallOption) (*IAMToken, error) {
 	out := new(IAMToken)
 	err := c.cc.Invoke(ctx, "/secretprovider.SecretProvider/GetIAMToken", in, out, opts...)
 	if err != nil {
@@ -53,7 +54,7 @@ func (c *secretProviderClient) GetIAMToken(ctx context.Context, in *TokenRequest
 	return out, nil
 }
 
-func (c *secretProviderClient) GetDefaultIAMToken(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*IAMToken, error) {
+func (c *secretProviderClient) GetDefaultIAMToken(ctx context.Context, in *Request, opts ...grpc.CallOption) (*IAMToken, error) {
 	out := new(IAMToken)
 	err := c.cc.Invoke(ctx, "/secretprovider.SecretProvider/GetDefaultIAMToken", in, out, opts...)
 	if err != nil {
@@ -67,8 +68,8 @@ func (c *secretProviderClient) GetDefaultIAMToken(ctx context.Context, in *Token
 // for forward compatibility
 type SecretProviderServer interface {
 	NewSecretProvider(context.Context, *InitRequest) (*Empty, error)
-	GetIAMToken(context.Context, *TokenRequest) (*IAMToken, error)
-	GetDefaultIAMToken(context.Context, *TokenRequest) (*IAMToken, error)
+	GetIAMToken(context.Context, *Request) (*IAMToken, error)
+	GetDefaultIAMToken(context.Context, *Request) (*IAMToken, error)
 	mustEmbedUnimplementedSecretProviderServer()
 }
 
@@ -79,10 +80,10 @@ type UnimplementedSecretProviderServer struct {
 func (UnimplementedSecretProviderServer) NewSecretProvider(context.Context, *InitRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewSecretProvider not implemented")
 }
-func (UnimplementedSecretProviderServer) GetIAMToken(context.Context, *TokenRequest) (*IAMToken, error) {
+func (UnimplementedSecretProviderServer) GetIAMToken(context.Context, *Request) (*IAMToken, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetIAMToken not implemented")
 }
-func (UnimplementedSecretProviderServer) GetDefaultIAMToken(context.Context, *TokenRequest) (*IAMToken, error) {
+func (UnimplementedSecretProviderServer) GetDefaultIAMToken(context.Context, *Request) (*IAMToken, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDefaultIAMToken not implemented")
 }
 func (UnimplementedSecretProviderServer) mustEmbedUnimplementedSecretProviderServer() {}
@@ -117,7 +118,7 @@ func _SecretProvider_NewSecretProvider_Handler(srv interface{}, ctx context.Cont
 }
 
 func _SecretProvider_GetIAMToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TokenRequest)
+	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,13 +130,13 @@ func _SecretProvider_GetIAMToken_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: "/secretprovider.SecretProvider/GetIAMToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SecretProviderServer).GetIAMToken(ctx, req.(*TokenRequest))
+		return srv.(SecretProviderServer).GetIAMToken(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _SecretProvider_GetDefaultIAMToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TokenRequest)
+	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ func _SecretProvider_GetDefaultIAMToken_Handler(srv interface{}, ctx context.Con
 		FullMethod: "/secretprovider.SecretProvider/GetDefaultIAMToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SecretProviderServer).GetDefaultIAMToken(ctx, req.(*TokenRequest))
+		return srv.(SecretProviderServer).GetDefaultIAMToken(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }

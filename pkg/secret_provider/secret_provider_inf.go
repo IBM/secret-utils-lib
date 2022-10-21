@@ -21,10 +21,10 @@ package secret_provider
 type SecretProviderInterface interface {
 
 	// GetIAMToken ...
-	GetIAMToken(reasonForCall, secret string, freshTokenRequired bool) (string, uint64, error)
+	GetIAMToken(secret string, freshTokenRequired bool, reasonForCall ...string) (string, uint64, error)
 
 	// GetDefaultIAMToken ...
-	GetDefaultIAMToken(reasonForCall string, freshTokenRequired bool) (string, uint64, error)
+	GetDefaultIAMToken(freshTokenRequired bool, reasonForCall ...string) (string, uint64, error)
 
 	// GetRIAASEndpoint ...
 	GetRIAASEndpoint(readConfig bool) (string, error)

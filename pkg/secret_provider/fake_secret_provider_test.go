@@ -40,7 +40,7 @@ func TestFakeGetDefaultIAMToken(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.testcasename, func(t *testing.T) {
 			fs := new(FakeSecretProvider)
-			_, _, err := fs.GetDefaultIAMToken("reason", testcase.isFreshTokenRequired)
+			_, _, err := fs.GetDefaultIAMToken(testcase.isFreshTokenRequired, "reason")
 			if testcase.expectedError != nil {
 				assert.NotNil(t, err, testcase.expectedError)
 			}
@@ -70,7 +70,7 @@ func TestFakeGetIAMToken(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.testcasename, func(t *testing.T) {
 			fs := new(FakeSecretProvider)
-			_, _, err := fs.GetIAMToken("reason", "fake-secret", testcase.isFreshTokenRequired)
+			_, _, err := fs.GetIAMToken("fake-secret", testcase.isFreshTokenRequired, "reason")
 			if testcase.expectedError != nil {
 				assert.NotNil(t, err, testcase.expectedError)
 			}
