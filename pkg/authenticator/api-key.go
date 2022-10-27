@@ -60,7 +60,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
 		aa.logger.Error("Error fetching fresh token", zap.Error(err))
-		if !strings.Contains(err.Error(), "context deadline exceeded") {
+		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
 		}
 		aa.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")

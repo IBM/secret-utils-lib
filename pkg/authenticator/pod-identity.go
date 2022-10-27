@@ -58,7 +58,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 	tokenResponse, err := ca.authenticator.RequestToken()
 	if err != nil {
 		ca.logger.Error("Error fetching fresh token", zap.Error(err))
-		if !strings.Contains(err.Error(), "context deadline exceeded") {
+		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
 		}
 		ca.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
