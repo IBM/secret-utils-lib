@@ -18,6 +18,7 @@ import (
 const (
 	// fakeEndpoint ...
 	fakeEndpoint = "https://fakehost.com"
+)
 
 // FakeSecretProvider ...
 type FakeSecretProvider struct {
