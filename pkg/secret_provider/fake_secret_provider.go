@@ -37,21 +37,21 @@ func (fs *FakeSecretProvider) GetIAMToken(secret string, freshTokenRequired bool
 
 // GetRIAASEndpoint ...
 func (fs *FakeSecretProvider) GetRIAASEndpoint(readConfig bool) (string, error) {
-	return "", nil
+	return "https://fakehost.com/", nil
 }
 
 func (fs *FakeSecretProvider) GetPrivateRIAASEndpoint(readConfig bool) (string, error) {
-	return "", nil
+	return "https://fakehost.com/", nil
 }
 
 func (fs *FakeSecretProvider) GetContainerAPIRoute(readConfig bool) (string, error) {
-	return "", nil
+	return "https://fakehost.com/", nil
 }
 
 func (fs *FakeSecretProvider) GetPrivateContainerAPIRoute(readConfig bool) (string, error) {
-	return "", nil
+	return "https://fakehost.com/", nil
 }
 
 func (fs *FakeSecretProvider) GetResourceGroupID() string {
-	return ""
+	return "resource-group-id"
 }
