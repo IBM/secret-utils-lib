@@ -17,8 +17,6 @@
 package authenticator
 
 import (
-	"strings"
-
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
@@ -60,19 +58,18 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	tokenResponse, err := aa.authenticator.RequestToken()
 	if err != nil {
 		aa.logger.Error("Error fetching fresh token", zap.Error(err))
-		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
+		// If the error is not timeout reaching to iam, return error, else update iam URL to public.
+		if !isTimeout(err) {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 		}
+
 		aa.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
-		if strings.Contains(aa.authenticator.URL, utils.ProdIAMURL) {
-			aa.SetURL(utils.PublicIAMURL + "/identity/token")
+		tokenExchangeURL := resetIAMURL(aa.authenticator.URL)
+		if tokenExchangeURL != "" {
+			aa.SetURL(tokenExchangeURL)
 			return aa.GetToken(freshTokenRequired)
 		}
-		if strings.Contains(aa.authenticator.URL, utils.StageIAMURL) {
-			aa.SetURL(utils.StagePublicIAMURL + "/identity/token")
-			return aa.GetToken(freshTokenRequired)
-		}
-		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
+		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 	}
 
 	if tokenResponse == nil {

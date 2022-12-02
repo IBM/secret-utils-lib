@@ -210,3 +210,22 @@ func parseIBMCloudCredentials(logger *zap.Logger, data string) (map[string]strin
 
 	return credentialsmap, nil
 }
+
+// isTimeout ...
+func isTimeout(err error) bool {
+	if strings.Contains(strings.ToLower(err.Error()), "timeout") {
+		return true
+	}
+	return false
+}
+
+// resetURL resets URL from private IAM url to public IAM url ...
+func resetIAMURL(currentURL string) string {
+	if strings.Contains(currentURL, utils.ProdPrivateIAMURL) {
+		return utils.ProdPublicIAMURL + "/identity/token"
+	}
+	if strings.Contains(currentURL, utils.StagePrivateIAMURL) {
+		return utils.StagePublicIAMURL + "/identity/token"
+	}
+	return ""
+}
