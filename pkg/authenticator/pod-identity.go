@@ -62,12 +62,10 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		}
 
 		ca.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
-		tokenExchangeURL := resetIAMURL(ca.authenticator.URL)
-		if tokenExchangeURL != "" {
-			ca.SetURL(tokenExchangeURL)
-			return ca.GetToken(freshTokenRequired)
+		if !resetIAMURL(ca) {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
 		}
-		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
+		return ca.GetToken(freshTokenRequired)
 	}
 
 	if tokenResponse == nil {
@@ -109,4 +107,9 @@ func (ca *ComputeIdentityAuthenticator) IsSecretEncrypted() bool {
 // SetEncryption ...
 func (ca *ComputeIdentityAuthenticator) SetEncryption(encrypted bool) {
 	ca.logger.Info("Unimplemented")
+}
+
+// getURL ...
+func (ca *ComputeIdentityAuthenticator) getURL() string {
+	return ca.authenticator.URL
 }

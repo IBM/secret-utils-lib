@@ -64,12 +64,10 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		}
 
 		aa.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
-		tokenExchangeURL := resetIAMURL(aa.authenticator.URL)
-		if tokenExchangeURL != "" {
-			aa.SetURL(tokenExchangeURL)
-			return aa.GetToken(freshTokenRequired)
+		if !resetIAMURL(aa) {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 		}
-		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
+		return aa.GetToken(freshTokenRequired)
 	}
 
 	if tokenResponse == nil {
@@ -111,4 +109,9 @@ func (aa *APIKeyAuthenticator) IsSecretEncrypted() bool {
 // SetEncryption ...
 func (aa *APIKeyAuthenticator) SetEncryption(encrypted bool) {
 	aa.isSecretEncrypted = encrypted
+}
+
+// getURL ...
+func (aa *APIKeyAuthenticator) getURL() string {
+	return aa.authenticator.URL
 }

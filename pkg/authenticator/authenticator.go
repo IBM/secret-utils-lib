@@ -40,6 +40,7 @@ type Authenticator interface {
 	SetURL(url string)
 	SetEncryption(bool)
 	IsSecretEncrypted() bool
+	getURL() string
 }
 
 // NewAuthenticator initializes the particular authenticator based on the configuration provided.
@@ -220,12 +221,14 @@ func isTimeout(err error) bool {
 }
 
 // resetURL resets URL from private IAM url to public IAM url ...
-func resetIAMURL(currentURL string) string {
-	if strings.Contains(currentURL, utils.ProdPrivateIAMURL) {
-		return utils.ProdPublicIAMURL + "/identity/token"
+func resetIAMURL(auth Authenticator) bool {
+	if strings.Contains(auth.getURL(), utils.ProdPrivateIAMURL) {
+		auth.SetURL(utils.ProdPublicIAMURL + "/identity/token")
+		return true
 	}
-	if strings.Contains(currentURL, utils.StagePrivateIAMURL) {
-		return utils.StagePublicIAMURL + "/identity/token"
+	if strings.Contains(auth.getURL(), utils.StagePrivateIAMURL) {
+		auth.SetURL(utils.StagePublicIAMURL + "/identity/token")
+		return true
 	}
-	return ""
+	return false
 }
