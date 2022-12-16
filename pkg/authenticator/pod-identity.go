@@ -56,7 +56,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 	tokenResponse, err := ca.authenticator.RequestToken()
 	if err != nil {
 		ca.logger.Error("Error fetching fresh token", zap.Error(err))
-		// If the error is not timeout reaching to iam, return error, else update iam URL to public.
+		// If the cluster cannot access private iam endpoint, hence returns timeout error, switch to public IAM endpoint.
 		if !isTimeout(err) {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
 		}
