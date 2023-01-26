@@ -80,7 +80,10 @@ func getNameSpace() (string, error) {
 }
 
 // ValidateK8SClient ...
-func ValidateK8SClient(k8sClient KubernetesClient) error {
+func ValidateK8SClient(k8sClient *KubernetesClient) error {
+	if k8sClient == nil {
+		return utils.Error{Description: "K8S client is nil"}
+	}
 	validate := validator.New()
 	return validate.Struct(&k8sClient)
 }
