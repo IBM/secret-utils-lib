@@ -85,5 +85,5 @@ func ValidateK8SClient(k8sClient *KubernetesClient) error {
 		return utils.Error{Description: "K8S client is nil"}
 	}
 	validate := validator.New()
-	return validate.Struct(&k8sClient)
+	return validate.Struct(k8sClient)
 }
