@@ -54,7 +54,7 @@ func setUpLogger(managed bool) *zap.Logger {
 }
 
 func clientForExtraKeySTS(logger *zap.Logger, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/storage-secret-store/extra_key")
 	err := k8s_utils.FakeCreateSecretWithKey(client, "storage-secret-store", "extra-key", secretFilePath)
 	if err != nil {
@@ -79,7 +79,7 @@ func clientForExtraKeySTS(logger *zap.Logger, cwd string) {
 }
 
 func clientForExtraKeyICCPodIdentity(logger *zap.Logger, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/ibm-cloud-credentials/pod-identity-cloud-provider.env")
 	err := k8s_utils.FakeCreateSecretWithKey(client, "ibm-cloud-credentials", "extra-key", secretFilePath)
 	if err != nil {
@@ -104,7 +104,7 @@ func clientForExtraKeyICCPodIdentity(logger *zap.Logger, cwd string) {
 }
 
 func clientForExtraKeyICCIAM(logger *zap.Logger, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/ibm-cloud-credentials/iam-cloud-provider.env")
 	err := k8s_utils.FakeCreateSecretWithKey(client, "ibm-cloud-credentials", "extra-key", secretFilePath)
 	if err != nil {
@@ -129,7 +129,7 @@ func clientForExtraKeyICCIAM(logger *zap.Logger, cwd string) {
 }
 
 func clientForDefaultAuthenticator(logger *zap.Logger, providerType, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/storage-secret-store/slclient.toml")
 	err := k8s_utils.FakeCreateSecret(client, utils.DEFAULT, secretFilePath)
 	if err != nil {
@@ -154,7 +154,7 @@ func clientForDefaultAuthenticator(logger *zap.Logger, providerType, cwd string)
 }
 
 func clientForIAMAuthenticator(logger *zap.Logger, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/ibm-cloud-credentials/iam-cloud-provider.env")
 	err := k8s_utils.FakeCreateSecret(client, utils.IAM, secretFilePath)
 	if err != nil {
@@ -178,7 +178,7 @@ func clientForIAMAuthenticator(logger *zap.Logger, cwd string) {
 }
 
 func clientForPodIdentityAuthenticator(logger *zap.Logger, cwd string) {
-	client, _ := k8s_utils.FakeGetk8sClientSet(logger)
+	client, _ := k8s_utils.FakeGetk8sClientSet()
 	secretFilePath := filepath.Join(cwd, "..", "secrets/ibm-cloud-credentials/pod-identity-cloud-provider.env")
 	err := k8s_utils.FakeCreateSecret(client, utils.PODIDENTITY, secretFilePath)
 	if err != nil {
