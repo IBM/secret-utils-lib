@@ -35,9 +35,6 @@ func CheckTokenLifeTime(tokenString string) (uint64, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		if err := claims.Valid(); err != nil {
-			return tokenLifeTime, err
-		}
 		currentTime := time.Now().Unix()
 		var expiryTime interface{}
 		if expiryTime, ok = claims["exp"]; !ok {
