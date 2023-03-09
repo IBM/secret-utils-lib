@@ -17,13 +17,20 @@
 package token
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestCheckTokenLifeTime(t *testing.T) {
+	// Creating test logger
+	logger, teardown := GetTestLogger(t)
+	defer teardown()
+
 	testcases := []struct {
 		testcasename  string
 		token         string
@@ -37,12 +44,12 @@ func TestCheckTokenLifeTime(t *testing.T) {
 		{
 			testcasename:  "Invalid token string",
 			token:         "Invalid",
-			expectedError: errors.New("Not nil"),
+			expectedError: errors.New("token contains an invalid number of segments"),
 		},
 		{
-			testcasename:  "Valid token string",
+			testcasename:  "Expired token",
 			token:         "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2NDUwMzI5MTUsImlhdCI6MTY0NTAzMjU3NH0.P4yzEttdMsKXLNesMJPZNeoIAl93b5LTX2Xf7rJtZ4o",
-			expectedError: nil,
+			expectedError: errors.New("Token is expired"),
 		},
 		{
 			testcasename:  "Valid token string without expiry time",
@@ -53,10 +60,40 @@ func TestCheckTokenLifeTime(t *testing.T) {
 
 	for _, testcase := range testcases {
 		t.Run(testcase.testcasename, func(t *testing.T) {
-			_, err := CheckTokenLifeTime(testcase.token)
+			_, err := CheckTokenLifeTime(testcase.token, logger)
 			if testcase.expectedError != nil {
-				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), testcase.expectedError.Error())
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}
+}
+
+// GetTestLogger ...
+func GetTestLogger(t *testing.T) (logger *zap.Logger, teardown func()) {
+	atom := zap.NewAtomicLevel()
+	atom.SetLevel(zap.DebugLevel)
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	buf := &bytes.Buffer{}
+
+	logger = zap.New(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderCfg),
+			zapcore.AddSync(buf),
+			atom,
+		),
+		zap.AddCaller(),
+	)
+
+	teardown = func() {
+		_ = logger.Sync()
+		if t.Failed() {
+			t.Log(buf)
+		}
+	}
+	return
 }
