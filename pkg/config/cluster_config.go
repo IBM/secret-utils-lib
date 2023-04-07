@@ -17,13 +17,14 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
-	"os"
 	"strings"
 
 	"github.com/IBM/secret-utils-lib/pkg/k8s_utils"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -37,6 +38,8 @@ const (
 	tokenExchangePath = "/identity/token"
 	// constTrue ...
 	constTrue = "True"
+	// maxNodes ...
+	maxNodes = 3
 )
 
 // ClusterConfig ...
@@ -76,7 +79,7 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 	secret, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
 		if secretConfig, err := ParseConfig(logger, secret); err == nil {
-			url, err := GetTokenExchangeURLfromStorageSecretStore(*secretConfig, providerType)
+			url, err := GetTokenExchangeURLfromStorageSecretStore(kc, *secretConfig, providerType)
 			if err == nil {
 				return url
 			}
@@ -90,11 +93,11 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 		return (utils.ProdPublicIAMURL + tokenExchangePath)
 	}
 
-	return FrameTokenExchangeURLFromClusterInfo(cc, logger)
+	return FrameTokenExchangeURLFromClusterInfo(kc, cc, logger)
 }
 
 // GetTokenExchangeURLfromStorageSecretStore ...
-func GetTokenExchangeURLfromStorageSecretStore(config Config, providerType string) (string, error) {
+func GetTokenExchangeURLfromStorageSecretStore(kc k8s_utils.KubernetesClient, config Config, providerType string) (string, error) {
 
 	var url string
 	switch providerType {
@@ -110,28 +113,71 @@ func GetTokenExchangeURLfromStorageSecretStore(config Config, providerType strin
 		return "", utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
 	}
 
-	// If the cluster is not satellite cluster, use PROD or STAGE URLs
-	if os.Getenv("IS_SATELLITE") != constTrue {
-		if !strings.Contains(url, "stage") && !strings.Contains(url, "test") {
-			url = utils.ProdPrivateIAMURL
-		} else {
-			url = utils.StagePrivateIAMURL
-		}
+	isSatellite, err := isSatellite(kc)
+	if err != nil {
+		return "", utils.Error{Description: "Unable to determine IAAS provider type", BackendError: err.Error()}
 	}
 
-	// Appending the base URL and token exchange path
-	url = url + tokenExchangePath
+	isProd := isProduction(url)
 
-	return url, nil
+	// If the cluster is satellite, always use public IAM URL.
+	if isSatellite {
+		if isProd {
+			return utils.ProdPublicIAMURL + tokenExchangePath, nil
+		}
+		return utils.StagePublicIAMURL + tokenExchangePath, nil
+	}
+
+	if isProd {
+		return utils.ProdPrivateIAMURL + tokenExchangePath, nil
+	}
+	return utils.StagePrivateIAMURL + tokenExchangePath, nil
 }
 
 // FrameTokenExchangeURLFromClusterInfo ...
-func FrameTokenExchangeURLFromClusterInfo(cc ClusterConfig, logger *zap.Logger) string {
+func FrameTokenExchangeURLFromClusterInfo(kc k8s_utils.KubernetesClient, cc ClusterConfig, logger *zap.Logger) string {
+	isSatellite, _ := isSatellite(kc)
+
 	if !strings.Contains(cc.MasterURL, stageMasterURLsubstr) {
 		logger.Info("Env-Production")
+		if isSatellite {
+			return (utils.ProdPublicIAMURL + tokenExchangePath)
+		}
 		return (utils.ProdPrivateIAMURL + tokenExchangePath)
 	}
 
 	logger.Info("Env-Stage")
+	if isSatellite {
+		return (utils.StagePublicIAMURL + tokenExchangePath)
+	}
 	return (utils.StagePrivateIAMURL + tokenExchangePath)
+}
+
+// isProduction determines if the env in which a pod is deployed is stage or production
+func isProduction(url string) bool {
+	if !strings.Contains(url, "stage") && !strings.Contains(url, "test") {
+		return true
+	}
+	return false
+}
+
+// isSatelliteCluster checks if the cluster where the pod is currently running is a satellite cluster or not
+func isSatellite(kc k8s_utils.KubernetesClient) (bool, error) {
+	nodeList, err := kc.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{Limit: maxNodes})
+	if err != nil {
+		return false, err
+	}
+
+	if len(nodeList.Items) == 0 {
+		return false, utils.Error{Description: "No nodes found"}
+	}
+
+	for _, node := range nodeList.Items {
+		providerType := node.ObjectMeta.Labels[utils.IaasProviderNodeLabel]
+		if providerType == utils.SatelliteProvider {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
