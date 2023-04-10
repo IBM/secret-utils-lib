@@ -75,11 +75,13 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 		return cloudConf.TokenExchangeURL + tokenExchangePath
 	}
 
+	isSatellite, _ := IsSatellite(kc, logger)
+
 	logger.Info("Unable to fetch token exchange URL from cloud-conf")
 	secret, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
 		if secretConfig, err := ParseConfig(logger, secret); err == nil {
-			url, err := GetTokenExchangeURLfromStorageSecretStore(kc, *secretConfig, providerType)
+			url, err := GetTokenExchangeURLfromStorageSecretStore(isSatellite, *secretConfig, providerType)
 			if err == nil {
 				return url
 			}
@@ -93,11 +95,11 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 		return (utils.ProdPublicIAMURL + tokenExchangePath)
 	}
 
-	return FrameTokenExchangeURLFromClusterInfo(kc, cc, logger)
+	return FrameTokenExchangeURLFromClusterInfo(isSatellite, cc, logger)
 }
 
 // GetTokenExchangeURLfromStorageSecretStore ...
-func GetTokenExchangeURLfromStorageSecretStore(kc k8s_utils.KubernetesClient, config Config, providerType string) (string, error) {
+func GetTokenExchangeURLfromStorageSecretStore(isSatellite bool, config Config, providerType string) (string, error) {
 
 	var url string
 	switch providerType {
@@ -111,11 +113,6 @@ func GetTokenExchangeURLfromStorageSecretStore(kc k8s_utils.KubernetesClient, co
 
 	if url == "" {
 		return "", utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
-	}
-
-	isSatellite, err := isSatellite(kc)
-	if err != nil {
-		return "", utils.Error{Description: "Unable to determine IAAS provider type", BackendError: err.Error()}
 	}
 
 	isProd := isProduction(url)
@@ -135,8 +132,7 @@ func GetTokenExchangeURLfromStorageSecretStore(kc k8s_utils.KubernetesClient, co
 }
 
 // FrameTokenExchangeURLFromClusterInfo ...
-func FrameTokenExchangeURLFromClusterInfo(kc k8s_utils.KubernetesClient, cc ClusterConfig, logger *zap.Logger) string {
-	isSatellite, _ := isSatellite(kc)
+func FrameTokenExchangeURLFromClusterInfo(isSatellite bool, cc ClusterConfig, logger *zap.Logger) string {
 
 	if !strings.Contains(cc.MasterURL, stageMasterURLsubstr) {
 		logger.Info("Env-Production")
@@ -161,20 +157,23 @@ func isProduction(url string) bool {
 	return false
 }
 
-// isSatelliteCluster checks if the cluster where the pod is currently running is a satellite cluster or not
-func isSatellite(kc k8s_utils.KubernetesClient) (bool, error) {
+// IsSatellite checks if the cluster where the pod is currently running is a satellite cluster or not
+func IsSatellite(kc k8s_utils.KubernetesClient, logger *zap.Logger) (bool, error) {
 	nodeList, err := kc.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{Limit: maxNodes})
 	if err != nil {
+		logger.Warn("Unable to list nodes", zap.Error(err))
 		return false, err
 	}
 
 	if len(nodeList.Items) == 0 {
+		logger.Warn("No nodes found", zap.Error(err), zap.Any("Get node response", nodeList))
 		return false, utils.Error{Description: "No nodes found"}
 	}
 
 	for _, node := range nodeList.Items {
 		providerType := node.ObjectMeta.Labels[utils.IaasProviderNodeLabel]
 		if providerType == utils.SatelliteProvider {
+			logger.Info("IAAS Provider - UPI")
 			return true, nil
 		}
 	}
