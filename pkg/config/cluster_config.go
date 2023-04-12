@@ -17,14 +17,12 @@
 package config
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 
 	"github.com/IBM/secret-utils-lib/pkg/k8s_utils"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -44,8 +42,9 @@ const (
 
 // ClusterConfig ...
 type ClusterConfig struct {
-	ClusterID string `json:"cluster_id"`
-	MasterURL string `json:"master_url"`
+	ClusterID       string `json:"cluster_id"`
+	MasterURL       string `json:"master_url"`
+	ClusterProvider string `json:"cluster_provider"`
 }
 
 // GetClusterInfo ...
@@ -75,7 +74,13 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 		return cloudConf.TokenExchangeURL + tokenExchangePath
 	}
 
-	isSatellite, _ := IsSatellite(kc, logger)
+	cc, err := GetClusterInfo(kc, logger)
+	if err != nil {
+		logger.Error("Error fetching cluster info", zap.Error(err))
+		return (utils.ProdPublicIAMURL + tokenExchangePath)
+	}
+
+	isSatellite := IsSatellite(cc, logger)
 
 	logger.Info("Unable to fetch token exchange URL from cloud-conf")
 	secret, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
@@ -89,12 +94,6 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 	}
 
 	logger.Info("Unable to fetch token exchange URL using secret, forming url using cluster info")
-	cc, err := GetClusterInfo(kc, logger)
-	if err != nil {
-		logger.Error("Error fetching cluster master URL", zap.Error(err))
-		return (utils.ProdPublicIAMURL + tokenExchangePath)
-	}
-
 	return FrameTokenExchangeURLFromClusterInfo(isSatellite, cc, logger)
 }
 
@@ -158,25 +157,10 @@ func isProduction(url string) bool {
 }
 
 // IsSatellite checks if the cluster where the pod is currently running is a satellite cluster or not
-func IsSatellite(kc k8s_utils.KubernetesClient, logger *zap.Logger) (bool, error) {
-	nodeList, err := kc.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{Limit: maxNodes})
-	if err != nil {
-		logger.Warn("Unable to list nodes", zap.Error(err))
-		return false, err
+func IsSatellite(cc ClusterConfig, logger *zap.Logger) bool {
+	if cc.ClusterProvider == utils.SatelliteProvider {
+		return true
 	}
 
-	if len(nodeList.Items) == 0 {
-		logger.Warn("No nodes found", zap.Error(err), zap.Any("Get node response", nodeList))
-		return false, utils.Error{Description: "No nodes found"}
-	}
-
-	for _, node := range nodeList.Items {
-		providerType := node.ObjectMeta.Labels[utils.IaasProviderNodeLabel]
-		if providerType == utils.SatelliteProvider {
-			logger.Info("IAAS Provider - UPI")
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return false
 }
