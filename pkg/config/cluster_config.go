@@ -77,7 +77,7 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 	cc, err := GetClusterInfo(kc, logger)
 	if err != nil {
 		logger.Error("Error fetching cluster info", zap.Error(err))
-		return (utils.ProdPublicIAMURL + tokenExchangePath)
+		return (utils.ProdPrivateIAMURL + tokenExchangePath)
 	}
 
 	isSatellite := IsSatellite(cc, logger)
