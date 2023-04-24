@@ -36,8 +36,6 @@ const (
 	tokenExchangePath = "/identity/token"
 	// constTrue ...
 	constTrue = "True"
-	// maxNodes ...
-	maxNodes = 3
 )
 
 // ClusterConfig ...
@@ -114,16 +112,12 @@ func GetTokenExchangeURLfromStorageSecretStore(isSatellite bool, config Config, 
 		return "", utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
 	}
 
-	isProd := isProduction(url)
-
-	// If the cluster is satellite, always use public IAM URL.
+	// If the cluster is satellite, first use the provided URL.
 	if isSatellite {
-		if isProd {
-			return utils.ProdPublicIAMURL + tokenExchangePath, nil
-		}
-		return utils.StagePublicIAMURL + tokenExchangePath, nil
+		return url, nil
 	}
 
+	isProd := isProduction(url)
 	if isProd {
 		return utils.ProdPrivateIAMURL + tokenExchangePath, nil
 	}
