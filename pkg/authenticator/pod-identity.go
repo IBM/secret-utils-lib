@@ -17,6 +17,8 @@
 package authenticator
 
 import (
+	"os"
+
 	"github.com/IBM/go-sdk-core/v5/core"
 	"github.com/IBM/secret-utils-lib/pkg/token"
 	"github.com/IBM/secret-utils-lib/pkg/utils"
@@ -35,6 +37,9 @@ func NewComputeIdentityAuthenticator(profileID string, logger *zap.Logger) *Comp
 	ca := new(ComputeIdentityAuthenticator)
 	ca.authenticator = new(core.ContainerAuthenticator)
 	ca.authenticator.IAMProfileID = profileID
+	if vaultPath := os.Getenv("IBMC_VAULT_TOKEN_PATH"); vaultPath != "" {
+		ca.authenticator.CRTokenFilename = vaultPath
+	}
 	ca.logger = logger
 	return ca
 }
