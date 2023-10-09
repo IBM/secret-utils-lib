@@ -20,6 +20,7 @@ package authenticator
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IBM/secret-utils-lib/pkg/config"
 	"github.com/IBM/secret-utils-lib/pkg/k8s_utils"
@@ -28,8 +29,17 @@ import (
 )
 
 const (
+	// ProviderType can be VPC/Bluemix
 	ProviderType string = "ProviderType"
-	SecretKey    string = "SecretKey"
+
+	// SecretKey ...
+	SecretKey string = "SecretKey"
+
+	// maxRetryAttempt ...
+	maxRetryAttempt = 15
+
+	// maxRetryGap ...
+	maxRetryGap = 8
 )
 
 // Authenticator ...
@@ -232,4 +242,36 @@ func resetIAMURL(auth Authenticator) bool {
 		return true
 	}
 	return false
+}
+
+// retry ...
+func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() error) error {
+
+	retryGap := 4
+	var err error
+
+	for retryAttempt := 0; retryAttempt < maxRetryAttempt; retryAttempt++ {
+		err := retryfunc()
+		if err == nil {
+			return err
+		}
+
+		logger.Error("Error fetching fresh token", zap.Error(err), zap.Int("AttemptNo", retryAttempt+1))
+		if !isTimeout(err) {
+			return err
+		}
+
+		time.Sleep(time.Second * time.Duration(retryGap))
+		retryGap = retryGap * 2
+		if retryGap > maxRetryGap {
+			retryGap = maxRetryGap
+		}
+	}
+
+	if resetIAMURL(authenticator) {
+		logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
+		return retry(logger, authenticator, retryfunc)
+	}
+
+	return err
 }

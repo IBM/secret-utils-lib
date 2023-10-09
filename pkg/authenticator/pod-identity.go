@@ -58,19 +58,14 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		}
 	}
 
-	tokenResponse, err := ca.authenticator.RequestToken()
-	if err != nil {
-		ca.logger.Error("Error fetching fresh token", zap.Error(err))
-		// If the cluster cannot access private iam endpoint, hence returns timeout error, switch to public IAM endpoint.
-		if !isTimeout(err) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
-		}
+	var tokenResponse *core.IamTokenServerResponse
+	err = retry(ca.logger, ca, func() error {
+		tokenResponse, err = ca.authenticator.RequestToken()
+		return err
+	})
 
-		ca.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
-		if !resetIAMURL(ca) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using compute identity", BackendError: err.Error()}
-		}
-		return ca.GetToken(freshTokenRequired)
+	if err != nil {
+		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
 	}
 
 	if tokenResponse == nil {

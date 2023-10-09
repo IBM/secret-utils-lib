@@ -54,20 +54,14 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		}
 	}
 
-	aa.logger.Info("Fetching fresh token")
-	tokenResponse, err := aa.authenticator.RequestToken()
-	if err != nil {
-		aa.logger.Error("Error fetching fresh token", zap.Error(err))
-		// If the cluster cannot access private iam endpoint, hence returns timeout error, switch to public IAM endpoint.
-		if !isTimeout(err) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
-		}
+	var tokenResponse *core.IamTokenServerResponse
+	err = retry(aa.logger, aa, func() error {
+		tokenResponse, err = aa.authenticator.RequestToken()
+		return err
+	})
 
-		aa.logger.Info("Updating iam URL to public, if it is private and retrying to fetch token")
-		if !resetIAMURL(aa) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
-		}
-		return aa.GetToken(freshTokenRequired)
+	if err != nil {
+		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 	}
 
 	if tokenResponse == nil {
