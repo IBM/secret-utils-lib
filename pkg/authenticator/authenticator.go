@@ -269,7 +269,7 @@ func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() err
 		}
 	}
 
-	// Reset the IAM URL from to public, if it is private
+	// Reset the IAM URL to public, if it is private
 	// Retry fetching IAM token again
 	if resetIAMURL(authenticator) {
 		logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
