@@ -257,6 +257,7 @@ func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() err
 		}
 
 		logger.Error("Error fetching fresh token", zap.Error(err), zap.Int("AttemptNo", retryAttempt+1))
+		// return if the error is not timeout
 		if !isTimeout(err) {
 			return err
 		}
@@ -268,6 +269,8 @@ func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() err
 		}
 	}
 
+	// Reset the IAM URL from to public, if it is private
+	// Retry fetching IAM token again
 	if resetIAMURL(authenticator) {
 		logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
 		return retry(logger, authenticator, retryfunc)
