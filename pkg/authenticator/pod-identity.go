@@ -27,9 +27,10 @@ import (
 
 // ComputeIdentityAuthenticator ...
 type ComputeIdentityAuthenticator struct {
-	authenticator *core.ContainerAuthenticator
-	logger        *zap.Logger
-	token         string
+	authenticator   *core.ContainerAuthenticator
+	logger          *zap.Logger
+	token           string
+	userProvidedURL bool
 }
 
 // NewComputeIdentityAuthenticator ...
@@ -65,15 +66,13 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 	})
 
 	if err != nil {
-		// If the error is not related to timeout, return error.
-		if !isTimeout(err) {
+		// If the error is not related to timeout or if the token exchange URL is provided by user, return error.
+		if !isTimeout(err) || ca.userProvidedURL {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
 		}
 
-		// Reset the IAM URL to public, if it is private.
-		if !resetIAMURL(ca) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
-		}
+		// By default authenticator uses private IAM URL, setting it to public
+		setPrivateIAMURL(ca)
 
 		// Retry fetching IAM token after switching from private to public IAM URL.
 		ca.logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
@@ -81,6 +80,9 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 			tokenResponse, err = ca.authenticator.RequestToken()
 			return err
 		})
+
+		// Resetting to private IAM URL.
+		setPrivateIAMURL(ca)
 		if err != nil {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
 		}
@@ -113,8 +115,9 @@ func (ca *ComputeIdentityAuthenticator) SetSecret(secret string) {
 }
 
 // SetURL ...
-func (ca *ComputeIdentityAuthenticator) SetURL(url string) {
+func (ca *ComputeIdentityAuthenticator) SetURL(url string, userProvided bool) {
 	ca.authenticator.URL = url
+	ca.userProvidedURL = userProvided
 }
 
 // IsSecretEncrypted ...

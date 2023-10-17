@@ -47,7 +47,7 @@ type Authenticator interface {
 	GetToken(freshTokenRequired bool) (string, uint64, error)
 	GetSecret() string
 	SetSecret(secret string)
-	SetURL(url string)
+	SetURL(url string, userProvided bool)
 	SetEncryption(bool)
 	IsSecretEncrypted() bool
 	getURL() string
@@ -231,17 +231,24 @@ func isTimeout(err error) bool {
 	return false
 }
 
-// resetURL resets URL from private IAM url to public IAM url ...
-func resetIAMURL(auth Authenticator) bool {
+// setPublicIAMURL sets private IAM url to public IAM url ...
+func setPublicIAMURL(auth Authenticator) {
 	if strings.Contains(auth.getURL(), utils.ProdPrivateIAMURL) {
-		auth.SetURL(utils.ProdPublicIAMURL + "/identity/token")
-		return true
+		auth.SetURL(utils.ProdPublicIAMURL+"/identity/token", false)
 	}
 	if strings.Contains(auth.getURL(), utils.StagePrivateIAMURL) {
-		auth.SetURL(utils.StagePublicIAMURL + "/identity/token")
-		return true
+		auth.SetURL(utils.StagePublicIAMURL+"/identity/token", false)
 	}
-	return false
+}
+
+// setPrivateIAMURL sets public IAM url to private IAM url ...
+func setPrivateIAMURL(auth Authenticator) {
+	if strings.Contains(auth.getURL(), utils.ProdPublicIAMURL) {
+		auth.SetURL(utils.ProdPrivateIAMURL+"/identity/token", false)
+	}
+	if strings.Contains(auth.getURL(), utils.StagePublicIAMURL) {
+		auth.SetURL(utils.StagePrivateIAMURL+"/identity/token", false)
+	}
 }
 
 // retry ...

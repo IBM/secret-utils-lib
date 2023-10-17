@@ -29,6 +29,7 @@ type APIKeyAuthenticator struct {
 	logger            *zap.Logger
 	isSecretEncrypted bool
 	token             string
+	userProvidedURL   bool
 }
 
 // NewIamAuthenticator ...
@@ -61,15 +62,13 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	})
 
 	if err != nil {
-		// If the error is not related to timeout, return error.
-		if !isTimeout(err) {
+		// If the error is not related to timeout or if the token exchange URL is provided by user, return error.
+		if !isTimeout(err) || aa.userProvidedURL {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 		}
 
-		// Reset the IAM URL to public, if it is private.
-		if !resetIAMURL(aa) {
-			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
-		}
+		// By default authenticator uses private IAM URL, setting it to public
+		setPublicIAMURL(aa)
 
 		// Retry fetching IAM token after switching from private to public IAM URL.
 		aa.logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
@@ -77,6 +76,9 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 			tokenResponse, err = aa.authenticator.RequestToken()
 			return err
 		})
+
+		// Resetting to private IAM URL.
+		setPrivateIAMURL(aa)
 		if err != nil {
 			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
 		}
@@ -109,8 +111,9 @@ func (aa *APIKeyAuthenticator) SetSecret(secret string) {
 }
 
 // SetURL ...
-func (aa *APIKeyAuthenticator) SetURL(url string) {
+func (aa *APIKeyAuthenticator) SetURL(url string, userProvided bool) {
 	aa.authenticator.URL = url
+	aa.userProvidedURL = userProvided
 }
 
 // IsSecretEncrypted ...
