@@ -36,7 +36,7 @@ const (
 	SecretKey string = "SecretKey"
 
 	// maxRetryAttempt ...
-	maxRetryAttempt = 10
+	maxRetryAttempt = 9
 
 	// maxRetryGap ...
 	maxRetryGap = 60
@@ -254,7 +254,7 @@ func retry(logger *zap.Logger, retryfunc func() error) error {
 	// 3rd retry - 8 seconds
 	// 4th retry - 16 seconds
 	// 5th retry - 32 seconds
-	// 6th ... 10th retry - 60 seconds
+	// 6th ... 9th retry - 60 seconds
 	retryGap := 2
 	var err error
 
