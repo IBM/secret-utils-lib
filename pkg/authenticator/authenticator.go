@@ -255,6 +255,8 @@ func retry(logger *zap.Logger, retryfunc func() error) error {
 	// 4th retry - 16 seconds
 	// 5th retry - 32 seconds
 	// 6th ... 9th retry - 60 seconds
+
+	// TODO: maxRetryAttempt and maxRetryGap needs to be made configurable.
 	retryGap := 2
 	var err error
 
