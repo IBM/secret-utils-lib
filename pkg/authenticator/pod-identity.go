@@ -59,13 +59,25 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 	}
 
 	var tokenResponse *core.IamTokenServerResponse
-	err = retry(ca.logger, ca, func() error {
+	err = retry(ca.logger, func() error {
 		tokenResponse, err = ca.authenticator.RequestToken()
 		return err
 	})
 
 	if err != nil {
-		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
+		// Reset the IAM URL to public, if it is private
+		if !resetIAMURL(ca) {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
+		}
+		// Retry fetching IAM token again
+		ca.logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
+		err = retry(ca.logger, func() error {
+			tokenResponse, err = ca.authenticator.RequestToken()
+			return err
+		})
+		if err != nil {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using trusted profile", BackendError: err.Error()}
+		}
 	}
 
 	if tokenResponse == nil {

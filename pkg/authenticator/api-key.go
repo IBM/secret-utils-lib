@@ -55,13 +55,25 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 	}
 
 	var tokenResponse *core.IamTokenServerResponse
-	err = retry(aa.logger, aa, func() error {
+	err = retry(aa.logger, func() error {
 		tokenResponse, err = aa.authenticator.RequestToken()
 		return err
 	})
 
 	if err != nil {
-		return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
+		// Reset the IAM URL to public, if it is private
+		if !resetIAMURL(aa) {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
+		}
+		// Retry fetching IAM token again
+		aa.logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
+		err = retry(aa.logger, func() error {
+			tokenResponse, err = aa.authenticator.RequestToken()
+			return err
+		})
+		if err != nil {
+			return "", tokenlifetime, utils.Error{Description: "Error fetching iam token using api key", BackendError: err.Error()}
+		}
 	}
 
 	if tokenResponse == nil {

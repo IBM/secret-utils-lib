@@ -36,10 +36,10 @@ const (
 	SecretKey string = "SecretKey"
 
 	// maxRetryAttempt ...
-	maxRetryAttempt = 15
+	maxRetryAttempt = 10
 
 	// maxRetryGap ...
-	maxRetryGap = 8
+	maxRetryGap = 60
 )
 
 // Authenticator ...
@@ -245,9 +245,17 @@ func resetIAMURL(auth Authenticator) bool {
 }
 
 // retry ...
-func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() error) error {
+func retry(logger *zap.Logger, retryfunc func() error) error {
 
-	retryGap := 4
+	// total retry duration amounts to:
+	// 2 + 4 + 8 + 16 + 32 + (60*4) = 302 seconds (5 minutes approximately)
+	// 1st retry - 2 seconds
+	// 2nd retry - 4 seconds
+	// 3rd retry - 8 seconds
+	// 4th retry - 16 seconds
+	// 5th retry - 32 seconds
+	// 6th ... 10th retry - 60 seconds
+	retryGap := 2
 	var err error
 
 	for retryAttempt := 0; retryAttempt < maxRetryAttempt; retryAttempt++ {
@@ -257,7 +265,8 @@ func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() err
 		}
 
 		logger.Error("Error fetching fresh token", zap.Error(err), zap.Int("AttemptNo", retryAttempt+1))
-		// return if the error is not timeout
+		// isTimeout checks whether the error is due to timeout.
+		// If the error is anything else other than timeout, do not retry (hence returning from the retry function)
 		if !isTimeout(err) {
 			return err
 		}
@@ -267,13 +276,6 @@ func retry(logger *zap.Logger, authenticator Authenticator, retryfunc func() err
 		if retryGap > maxRetryGap {
 			retryGap = maxRetryGap
 		}
-	}
-
-	// Reset the IAM URL to public, if it is private
-	// Retry fetching IAM token again
-	if resetIAMURL(authenticator) {
-		logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
-		return retry(logger, authenticator, retryfunc)
 	}
 
 	return err
