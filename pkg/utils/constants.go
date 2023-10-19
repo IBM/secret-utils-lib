@@ -57,4 +57,6 @@ const (
 	Softlayer = "softlayer"
 	// SatelliteProvider ...
 	SatelliteProvider = "upi"
+	// VPCGen2 is one of the cluster types ...
+	VPCGen2 = "vpc-gen2_cruiser"
 )

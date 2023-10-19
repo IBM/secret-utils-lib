@@ -43,6 +43,7 @@ type ClusterConfig struct {
 	ClusterID       string `json:"cluster_id"`
 	MasterURL       string `json:"master_url"`
 	ClusterProvider string `json:"cluster_provider"`
+	ClusterType     string `json:"cluster_type"`
 }
 
 // GetClusterInfo ...
@@ -64,40 +65,51 @@ func GetClusterInfo(kc k8s_utils.KubernetesClient, logger *zap.Logger) (ClusterC
 }
 
 // FrameTokenExchangeURL ...
-func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, logger *zap.Logger) string {
+func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, logger *zap.Logger) (string, bool) {
 
+	var providedTokenExchangeURL = true
 	// Fetch token exchange URL from cloud-conf
 	cloudConf, err := GetCloudConf(logger, kc)
 	if err == nil && cloudConf.TokenExchangeURL != "" {
-		return cloudConf.TokenExchangeURL + tokenExchangePath
+		return cloudConf.TokenExchangeURL + tokenExchangePath, providedTokenExchangeURL
 	}
-
-	cc, err := GetClusterInfo(kc, logger)
-	if err != nil {
-		logger.Error("Error fetching cluster info", zap.Error(err))
-		return (utils.ProdPrivateIAMURL + tokenExchangePath)
-	}
-
-	isSatellite := IsSatellite(cc, logger)
 
 	logger.Info("Unable to fetch token exchange URL from cloud-conf")
+	clusterInfo, err := GetClusterInfo(kc, logger)
+	if err != nil {
+		logger.Error("Error fetching cluster info", zap.Error(err))
+		return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
+	}
+
 	secret, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
 		if secretConfig, err := ParseConfig(logger, secret); err == nil {
-			url, err := GetTokenExchangeURLfromStorageSecretStore(isSatellite, *secretConfig, providerType)
+			url, providedTokenExchangeURL, err := GetTokenExchangeURLfromStorageSecretStore(clusterInfo, *secretConfig, providerType)
 			if err == nil {
-				return url
+				return url, providedTokenExchangeURL
 			}
 		}
 	}
 
 	logger.Info("Unable to fetch token exchange URL using secret, forming url using cluster info")
-	return FrameTokenExchangeURLFromClusterInfo(isSatellite, cc, logger)
+	return FrameTokenExchangeURLFromClusterInfo(clusterInfo, logger)
 }
 
 // GetTokenExchangeURLfromStorageSecretStore ...
-func GetTokenExchangeURLfromStorageSecretStore(isSatellite bool, config Config, providerType string) (string, error) {
+func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config Config, providerType string) (string, bool, error) {
 
+	// Possible conditions and env
+	// Return Private Prod/Stage IAM URL if the cluster is VPC Gen2
+	var providedTokenExchangeURL = false
+	if clusterInfo.ClusterType == utils.VPCGen2 {
+		if isProduction(clusterInfo.MasterURL) {
+			return utils.ProdPrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
+		}
+		return utils.StagePrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
+	}
+
+	// If the cluster is satellite, classic, IPI, return the URL provided in storage-secret-store
+	providedTokenExchangeURL = true
 	var url string
 	switch providerType {
 	case utils.VPC:
@@ -109,37 +121,30 @@ func GetTokenExchangeURLfromStorageSecretStore(isSatellite bool, config Config, 
 	}
 
 	if url == "" {
-		return "", utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
+		return "", providedTokenExchangeURL, utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
 	}
 
-	// If the cluster is satellite, first use the provided URL.
-	if isSatellite {
-		return url, nil
-	}
-
-	isProd := isProduction(url)
-	if isProd {
-		return utils.ProdPrivateIAMURL + tokenExchangePath, nil
-	}
-	return utils.StagePrivateIAMURL + tokenExchangePath, nil
+	return url, providedTokenExchangeURL, nil
 }
 
 // FrameTokenExchangeURLFromClusterInfo ...
-func FrameTokenExchangeURLFromClusterInfo(isSatellite bool, cc ClusterConfig, logger *zap.Logger) string {
+func FrameTokenExchangeURLFromClusterInfo(cc ClusterConfig, logger *zap.Logger) (string, bool) {
 
-	if !strings.Contains(cc.MasterURL, stageMasterURLsubstr) {
+	var providedTokenExchangeURL = true
+	isSatellite := IsSatellite(cc, logger)
+	if isProduction(cc.MasterURL) {
 		logger.Info("Env-Production")
 		if isSatellite {
-			return (utils.ProdPublicIAMURL + tokenExchangePath)
+			return (utils.ProdPublicIAMURL + tokenExchangePath), providedTokenExchangeURL
 		}
-		return (utils.ProdPrivateIAMURL + tokenExchangePath)
+		return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 	}
 
 	logger.Info("Env-Stage")
 	if isSatellite {
-		return (utils.StagePublicIAMURL + tokenExchangePath)
+		return (utils.StagePublicIAMURL + tokenExchangePath), providedTokenExchangeURL
 	}
-	return (utils.StagePrivateIAMURL + tokenExchangePath)
+	return (utils.StagePrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 }
 
 // isProduction determines if the env in which a pod is deployed is stage or production
