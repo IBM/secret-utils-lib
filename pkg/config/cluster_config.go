@@ -98,10 +98,9 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 // GetTokenExchangeURLfromStorageSecretStore ...
 func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config Config, providerType string) (string, bool, error) {
 
-	// Possible conditions and env
 	// Return Private Prod/Stage IAM URL if the cluster is VPC Gen2
 	var providedTokenExchangeURL = false
-	if clusterInfo.ClusterType == utils.VPCGen2 {
+	if GetIAASProvider(clusterInfo) == utils.VPCGen2 {
 		if isProduction(clusterInfo.MasterURL) {
 			return utils.ProdPrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
 		}
@@ -132,19 +131,19 @@ func FrameTokenExchangeURLFromClusterInfo(cc ClusterConfig, logger *zap.Logger) 
 
 	var providedTokenExchangeURL = true
 	isSatellite := IsSatellite(cc, logger)
-	if isProduction(cc.MasterURL) {
-		logger.Info("Env-Production")
-		if isSatellite {
-			return (utils.ProdPublicIAMURL + tokenExchangePath), providedTokenExchangeURL
-		}
+	isProd := isProduction(cc.MasterURL)
+	switch {
+	case isSatellite && isProd:
+		return (utils.ProdPublicIAMURL + tokenExchangePath), providedTokenExchangeURL
+	case isSatellite && !isProd:
+		return (utils.StagePublicIAMURL + tokenExchangePath), providedTokenExchangeURL
+	case !isSatellite && isProd:
 		return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
+	case !isSatellite && !isProd:
+		return (utils.StagePrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 	}
 
-	logger.Info("Env-Stage")
-	if isSatellite {
-		return (utils.StagePublicIAMURL + tokenExchangePath), providedTokenExchangeURL
-	}
-	return (utils.StagePrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
+	return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 }
 
 // isProduction determines if the env in which a pod is deployed is stage or production
@@ -162,4 +161,9 @@ func IsSatellite(cc ClusterConfig, logger *zap.Logger) bool {
 	}
 
 	return false
+}
+
+// GetIAASProvider ...
+func GetIAASProvider(cc ClusterConfig) string {
+	return cc.ClusterType
 }

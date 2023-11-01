@@ -72,7 +72,7 @@ func (ca *ComputeIdentityAuthenticator) GetToken(freshTokenRequired bool) (strin
 		}
 
 		// By default authenticator uses private IAM URL, setting it to public
-		setPrivateIAMURL(ca)
+		setPublicIAMURL(ca)
 
 		// Retry fetching IAM token after switching from private to public IAM URL.
 		ca.logger.Info("Updated IAM URL from private to public, retrying to fetch IAM token")
