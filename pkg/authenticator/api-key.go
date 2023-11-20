@@ -48,7 +48,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 
 	if !freshTokenRequired {
 		// Fetching token life time of the token in cache
-		tokenlifetime, err = token.CheckTokenLifeTime(aa.token)
+		tokenlifetime, err = token.CheckTokenLifeTime(aa.token, aa.logger)
 		if err == nil {
 			aa.logger.Info("Fetched iam token from cache", zap.Uint64("token-life-time-in-seconds", tokenlifetime))
 			return aa.token, tokenlifetime, nil
@@ -89,7 +89,7 @@ func (aa *APIKeyAuthenticator) GetToken(freshTokenRequired bool) (string, uint64
 		return "", tokenlifetime, utils.Error{Description: utils.ErrEmptyTokenResponse}
 	}
 
-	tokenlifetime, err = token.CheckTokenLifeTime(tokenResponse.AccessToken)
+	tokenlifetime, err = token.CheckTokenLifeTime(tokenResponse.AccessToken, aa.logger)
 	if err != nil {
 		aa.logger.Error("Error fetching token lifetime for new token", zap.Error(err))
 		return "", tokenlifetime, utils.Error{Description: "Error fetching token lifetime", BackendError: err.Error()}
