@@ -101,7 +101,12 @@ func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config
 	// Return Private Prod/Stage IAM URL if the cluster is VPC Gen2
 	var providedTokenExchangeURL = false
 	if GetIAASProvider(clusterInfo) == utils.VPCGen2 {
-		if isProduction(clusterInfo.MasterURL) {
+		if isPrivate(config.VPC.G2TokenExchangeURL) {
+			providedTokenExchangeURL = true
+			return config.VPC.G2TokenExchangeURL + tokenExchangePath, providedTokenExchangeURL, nil
+		}
+		providedTokenExchangeURL = false
+		if isProduction(config.VPC.G2TokenExchangeURL) {
 			return utils.ProdPrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
 		}
 		return utils.StagePrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
@@ -144,6 +149,14 @@ func FrameTokenExchangeURLFromClusterInfo(cc ClusterConfig, logger *zap.Logger) 
 	}
 
 	return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
+}
+
+// isPrivate determines if the provided url is private or public endpoint
+func isPrivate(url string) bool {
+	if strings.Contains(url, "private") {
+		return true
+	}
+	return false
 }
 
 // isProduction determines if the env in which a pod is deployed is stage or production
