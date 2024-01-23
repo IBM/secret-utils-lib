@@ -1,0 +1,6 @@
+[VPC]
+  g2_token_exchange_endpoint_url = "https://iam.cloud.ibm.com"
+  g2_riaas_endpoint_url = "https://au-syd.iaas.cloud.ibm.com"
+  g2_resource_group_id = "<resource-id>"
+  g2_api_key = "aaaa"
+  encryption = false
