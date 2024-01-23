@@ -78,68 +78,68 @@ func TestFrameTokenExchangeURL(t *testing.T) {
 	defer teardown()
 
 	testcases := []struct {
-		testCaseName             string
-		secretDataPath           string
-		clusterInfoPath          string
-		expectedTokenURL         string
-		providedTokenExchangeURL bool
-		providerToBeUsed         string
+		testCaseName     string
+		secretDataPath   string
+		clusterInfoPath  string
+		expectedTokenURL string
+		isURLprovided    bool
+		providerToBeUsed string
 	}{
 		{
-			testCaseName:             "VPC gen2 prod cluster",
-			secretDataPath:           "test-fixtures/valid/vpc-gen2/prod/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
-			expectedTokenURL:         utils.ProdPrivateIAMURL + tokenExchangePath,
-			providedTokenExchangeURL: false,
-			providerToBeUsed:         utils.Bluemix,
+			testCaseName:     "VPC gen2 prod cluster",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
+			expectedTokenURL: "https://private.iam.cloud.ibm.com/identity/token",
+			isURLprovided:    false,
+			providerToBeUsed: utils.Bluemix,
 		},
 		{
-			testCaseName:             "VPC gen2 stage cluster",
-			secretDataPath:           "test-fixtures/valid/vpc-gen2/stage/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/vpc-gen2/stage/cluster-info.json",
-			expectedTokenURL:         utils.StagePrivateIAMURL + tokenExchangePath,
-			providedTokenExchangeURL: false,
-			providerToBeUsed:         utils.Bluemix,
+			testCaseName:     "VPC gen2 stage cluster",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/stage/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/stage/cluster-info.json",
+			expectedTokenURL: "https://private.iam.test.cloud.ibm.com/identity/token",
+			isURLprovided:    false,
+			providerToBeUsed: utils.Bluemix,
 		},
 		{
-			testCaseName:             "VPC gen2 dev cluster",
-			secretDataPath:           "test-fixtures/valid/vpc-gen2/dev/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/vpc-gen2/dev/cluster-info.json",
-			expectedTokenURL:         utils.StagePrivateIAMURL + tokenExchangePath,
-			providedTokenExchangeURL: false,
-			providerToBeUsed:         utils.VPC,
+			testCaseName:     "VPC gen2 dev cluster",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/dev/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/dev/cluster-info.json",
+			expectedTokenURL: "https://private.iam.test.cloud.ibm.com/identity/token",
+			isURLprovided:    false,
+			providerToBeUsed: utils.VPC,
 		},
 		{
-			testCaseName:             "VPC gen2 prod private endpoint provided in slclient.toml",
-			secretDataPath:           "test-fixtures/valid/vpc-gen2/prod/slclient-private.toml",
-			clusterInfoPath:          "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
-			expectedTokenURL:         "https://private.iam.cloud.ibm.com" + tokenExchangePath,
-			providedTokenExchangeURL: true,
-			providerToBeUsed:         utils.VPC,
+			testCaseName:     "VPC gen2 prod private endpoint provided in slclient.toml",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/slclient-private.toml",
+			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
+			expectedTokenURL: "https://private.iam.cloud.ibm.com/identity/token",
+			isURLprovided:    true,
+			providerToBeUsed: utils.VPC,
 		},
 		{
-			testCaseName:             "Classic cluster prod",
-			secretDataPath:           "test-fixtures/valid/classic/prod/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/classic/prod/cluster-info.json",
-			expectedTokenURL:         "https://iam.cloud.ibm.com" + tokenExchangePath,
-			providedTokenExchangeURL: true,
-			providerToBeUsed:         utils.Bluemix,
+			testCaseName:     "Classic cluster prod",
+			secretDataPath:   "test-fixtures/valid/classic/prod/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/classic/prod/cluster-info.json",
+			expectedTokenURL: "https://iam.cloud.ibm.com/identity/token",
+			isURLprovided:    true,
+			providerToBeUsed: utils.Bluemix,
 		},
 		{
-			testCaseName:             "Classic cluster stage",
-			secretDataPath:           "test-fixtures/valid/classic/stage/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/classic/stage/cluster-info.json",
-			expectedTokenURL:         "https://iam.test.cloud.ibm.com" + tokenExchangePath,
-			providedTokenExchangeURL: true,
-			providerToBeUsed:         utils.Bluemix,
+			testCaseName:     "Classic cluster stage",
+			secretDataPath:   "test-fixtures/valid/classic/stage/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/classic/stage/cluster-info.json",
+			expectedTokenURL: "https://iam.test.cloud.ibm.com/identity/token",
+			isURLprovided:    true,
+			providerToBeUsed: utils.Bluemix,
 		},
 		{
-			testCaseName:             "Satellite cluster prod",
-			secretDataPath:           "test-fixtures/valid/vpc-gen2/prod/satellite/slclient.toml",
-			clusterInfoPath:          "test-fixtures/valid/vpc-gen2/prod/satellite/cluster-info.json",
-			expectedTokenURL:         "https://iam.cloud.ibm.com" + tokenExchangePath,
-			providedTokenExchangeURL: true,
-			providerToBeUsed:         utils.VPC,
+			testCaseName:     "Satellite cluster prod",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/satellite/slclient.toml",
+			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/satellite/cluster-info.json",
+			expectedTokenURL: "https://iam.cloud.ibm.com/identity/token",
+			isURLprovided:    true,
+			providerToBeUsed: utils.VPC,
 		},
 	}
 
@@ -164,7 +164,7 @@ func TestFrameTokenExchangeURL(t *testing.T) {
 
 			returnedURL, provided := FrameTokenExchangeURL(k8sClient, testcase.providerToBeUsed, logger)
 			assert.Equal(t, returnedURL, testcase.expectedTokenURL)
-			assert.Equal(t, provided, testcase.providedTokenExchangeURL)
+			assert.Equal(t, provided, testcase.isURLprovided)
 		})
 	}
 }
