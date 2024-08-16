@@ -2,8 +2,6 @@ module github.com/IBM/secret-utils-lib
 
 go 1.22.0
 
-toolchain go1.22.1
-
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/IBM/go-sdk-core/v5 v5.9.1
