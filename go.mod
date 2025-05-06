@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/IBM/go-sdk-core/v5 v5.9.1
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.20.0
@@ -31,6 +30,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
