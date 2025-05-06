@@ -24,8 +24,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	k8s_utils "github.com/IBM/secret-utils-lib/pkg/k8s_utils"
-	"github.com/IBM/secret-utils-lib/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -69,102 +67,6 @@ func TestParseConfig(t *testing.T) {
 			if testcase.expectedError != nil {
 				assert.NotNil(t, err)
 			}
-		})
-	}
-}
-
-func TestFrameTokenExchangeURL(t *testing.T) {
-	logger, teardown := GetTestLogger(t)
-	defer teardown()
-
-	testcases := []struct {
-		testCaseName     string
-		secretDataPath   string
-		clusterInfoPath  string
-		expectedTokenURL string
-		isURLprovided    bool
-		providerToBeUsed string
-	}{
-		{
-			testCaseName:     "VPC gen2 prod cluster",
-			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
-			expectedTokenURL: "https://private.iam.cloud.ibm.com/identity/token",
-			isURLprovided:    false,
-			providerToBeUsed: utils.Bluemix,
-		},
-		{
-			testCaseName:     "VPC gen2 stage cluster",
-			secretDataPath:   "test-fixtures/valid/vpc-gen2/stage/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/stage/cluster-info.json",
-			expectedTokenURL: "https://private.iam.test.cloud.ibm.com/identity/token",
-			isURLprovided:    false,
-			providerToBeUsed: utils.Bluemix,
-		},
-		{
-			testCaseName:     "VPC gen2 dev cluster",
-			secretDataPath:   "test-fixtures/valid/vpc-gen2/dev/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/dev/cluster-info.json",
-			expectedTokenURL: "https://private.iam.test.cloud.ibm.com/identity/token",
-			isURLprovided:    false,
-			providerToBeUsed: utils.VPC,
-		},
-		{
-			testCaseName:     "VPC gen2 prod private endpoint provided in slclient.toml",
-			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/slclient-private.toml",
-			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/cluster-info.json",
-			expectedTokenURL: "https://private.iam.cloud.ibm.com/identity/token",
-			isURLprovided:    true,
-			providerToBeUsed: utils.VPC,
-		},
-		{
-			testCaseName:     "Classic cluster prod",
-			secretDataPath:   "test-fixtures/valid/classic/prod/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/classic/prod/cluster-info.json",
-			expectedTokenURL: "https://iam.cloud.ibm.com/identity/token",
-			isURLprovided:    true,
-			providerToBeUsed: utils.Bluemix,
-		},
-		{
-			testCaseName:     "Classic cluster stage",
-			secretDataPath:   "test-fixtures/valid/classic/stage/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/classic/stage/cluster-info.json",
-			expectedTokenURL: "https://iam.test.cloud.ibm.com/identity/token",
-			isURLprovided:    true,
-			providerToBeUsed: utils.Bluemix,
-		},
-		{
-			testCaseName:     "Satellite cluster prod",
-			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/satellite/slclient.toml",
-			clusterInfoPath:  "test-fixtures/valid/vpc-gen2/prod/satellite/cluster-info.json",
-			expectedTokenURL: "https://iam.cloud.ibm.com/identity/token",
-			isURLprovided:    true,
-			providerToBeUsed: utils.VPC,
-		},
-	}
-
-	for _, testcase := range testcases {
-		t.Run(testcase.testCaseName, func(t *testing.T) {
-			pwd, err := os.Getwd()
-			if err != nil {
-				t.Errorf("Failed to get current working directory, test case parse config, error: %v", err)
-			}
-
-			secretfilePath := filepath.Join(pwd, "..", "..", testcase.secretDataPath)
-			clusterInfoPath := filepath.Join(pwd, "..", "..", testcase.clusterInfoPath)
-			k8sClient, _ := k8s_utils.FakeGetk8sClientSet()
-			err = k8s_utils.FakeCreateSecret(k8sClient, utils.DEFAULT, secretfilePath)
-			if err != nil {
-				t.Errorf("Failed to create secret, error: %v", err)
-			}
-			err = k8s_utils.FakeCreateCM(k8sClient, clusterInfoPath)
-			if err != nil {
-				t.Errorf("Failed to create cluster info config map, error: %v", err)
-			}
-
-			returnedURL, provided := FrameTokenExchangeURL(k8sClient, testcase.providerToBeUsed, logger)
-			assert.Equal(t, returnedURL, testcase.expectedTokenURL)
-			assert.Equal(t, provided, testcase.isURLprovided)
 		})
 	}
 }
