@@ -117,9 +117,9 @@ func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config
 	var url string
 	switch providerType {
 	case utils.VPC:
-		url = config.VPC.G2TokenExchangeURL
+		url = config.VPC.G2TokenExchangeURL + tokenExchangePath
 	case utils.Bluemix:
-		url = config.Bluemix.IamURL
+		url = config.Bluemix.IamURL + tokenExchangePath
 	case utils.Softlayer:
 		url = config.Softlayer.SoftlayerTokenExchangeURL
 	}
