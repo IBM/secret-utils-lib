@@ -23,10 +23,9 @@ import (
 )
 
 type FakeAuthenticator struct {
-	logger          *zap.Logger
-	secret          string
-	url             string
-	userProvidedURL bool
+	logger *zap.Logger
+	secret string
+	url    string
 }
 
 func NewFakeAuthenticator(logger *zap.Logger) *FakeAuthenticator {
@@ -52,9 +51,8 @@ func (fa *FakeAuthenticator) SetSecret(secret string) {
 }
 
 // SetURL ...
-func (fa *FakeAuthenticator) SetURL(url string, userProvided bool) {
+func (fa *FakeAuthenticator) SetURL(url string) {
 	fa.url = url
-	fa.userProvidedURL = userProvided
 }
 
 // IsSecretEncrypted ...
