@@ -67,26 +67,26 @@ func GetClusterInfo(kc k8s_utils.KubernetesClient, logger *zap.Logger) (ClusterC
 // FrameTokenExchangeURL ...
 func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, logger *zap.Logger) (string, bool) {
 
-	var isURLprovided = true
+	var providedTokenExchangeURL = true
 	// Fetch token exchange URL from cloud-conf
 	cloudConf, err := GetCloudConf(logger, kc)
 	if err == nil && cloudConf.TokenExchangeURL != "" {
-		return cloudConf.TokenExchangeURL + tokenExchangePath, isURLprovided
+		return cloudConf.TokenExchangeURL + tokenExchangePath, providedTokenExchangeURL
 	}
 
 	logger.Info("Unable to fetch token exchange URL from cloud-conf")
 	clusterInfo, err := GetClusterInfo(kc, logger)
 	if err != nil {
 		logger.Error("Error fetching cluster info", zap.Error(err))
-		return (utils.ProdPrivateIAMURL + tokenExchangePath), !isURLprovided
+		return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 	}
 
 	secret, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
 	if err == nil {
 		if secretConfig, err := ParseConfig(logger, secret); err == nil {
-			url, isURLprovided, err := GetTokenExchangeURLfromStorageSecretStore(clusterInfo, *secretConfig, providerType)
+			url, providedTokenExchangeURL, err := GetTokenExchangeURLfromStorageSecretStore(clusterInfo, *secretConfig, providerType)
 			if err == nil {
-				return url, isURLprovided
+				return url, providedTokenExchangeURL
 			}
 		}
 	}
@@ -99,21 +99,16 @@ func FrameTokenExchangeURL(kc k8s_utils.KubernetesClient, providerType string, l
 func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config Config, providerType string) (string, bool, error) {
 
 	// Return Private Prod/Stage IAM URL if the cluster is VPC Gen2
-	var isURLprovided = false
+	var providedTokenExchangeURL = false
 	if GetIAASProvider(clusterInfo) == utils.VPCGen2 {
-		if isEndpointPrivate(config.VPC.G2TokenExchangeURL) {
-			isURLprovided = true
-			return config.VPC.G2TokenExchangeURL + tokenExchangePath, isURLprovided, nil
+		if isProduction(clusterInfo.MasterURL) {
+			return utils.ProdPrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
 		}
-		isURLprovided = false
-		if isProduction(config.VPC.G2TokenExchangeURL) {
-			return utils.ProdPrivateIAMURL + tokenExchangePath, isURLprovided, nil
-		}
-		return utils.StagePrivateIAMURL + tokenExchangePath, isURLprovided, nil
+		return utils.StagePrivateIAMURL + tokenExchangePath, providedTokenExchangeURL, nil
 	}
 
 	// If the cluster is satellite, classic, IPI, return the URL provided in storage-secret-store
-	isURLprovided = true
+	providedTokenExchangeURL = true
 	var url string
 	switch providerType {
 	case utils.VPC:
@@ -125,38 +120,30 @@ func GetTokenExchangeURLfromStorageSecretStore(clusterInfo ClusterConfig, config
 	}
 
 	if url == "" {
-		return "", isURLprovided, utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
+		return "", providedTokenExchangeURL, utils.Error{Description: utils.WarnFetchingTokenExchangeURL}
 	}
 
-	return url, isURLprovided, nil
+	return url, providedTokenExchangeURL, nil
 }
 
 // FrameTokenExchangeURLFromClusterInfo ...
 func FrameTokenExchangeURLFromClusterInfo(cc ClusterConfig, logger *zap.Logger) (string, bool) {
 
-	var isURLprovided = true
+	var providedTokenExchangeURL = true
 	isSatellite := IsSatellite(cc, logger)
 	isProd := isProduction(cc.MasterURL)
 	switch {
 	case isSatellite && isProd:
-		return (utils.ProdPublicIAMURL + tokenExchangePath), isURLprovided
+		return (utils.ProdPublicIAMURL + tokenExchangePath), providedTokenExchangeURL
 	case isSatellite && !isProd:
-		return (utils.StagePublicIAMURL + tokenExchangePath), isURLprovided
+		return (utils.StagePublicIAMURL + tokenExchangePath), providedTokenExchangeURL
 	case !isSatellite && isProd:
-		return (utils.ProdPrivateIAMURL + tokenExchangePath), !isURLprovided
+		return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 	case !isSatellite && !isProd:
-		return (utils.StagePrivateIAMURL + tokenExchangePath), !isURLprovided
+		return (utils.StagePrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 	}
 
-	return (utils.ProdPrivateIAMURL + tokenExchangePath), !isURLprovided
-}
-
-// isEndpointPrivate determines if the provided url is private or public endpoint
-func isEndpointPrivate(url string) bool {
-	if strings.Contains(url, "private") {
-		return true
-	}
-	return false
+	return (utils.ProdPrivateIAMURL + tokenExchangePath), !providedTokenExchangeURL
 }
 
 // isProduction determines if the env in which a pod is deployed is stage or production
