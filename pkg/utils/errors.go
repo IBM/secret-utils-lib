@@ -115,4 +115,13 @@ const (
 
 	// ErrEmptyConfigMapData ...
 	ErrEmptyConfigMapData = "Unable to find %s key in %s config map"
+
+	// ErrReadingStorageSecretStore ...
+	ErrReadingStorageSecretStore = "error reading storage-secret-store secret"
+
+	// ErrIAMURLNotFound ...
+	ErrIAMURLNotFound = "IAM URL not found in storage-secret-store for the specified provider type"
+
+	// ErrInvalidProviderTypeForIAMURL ...
+	ErrInvalidProviderTypeForIAMURL = "invalid provider type specified. Valid options are: vpc, bluemix, softlayer"
 )
