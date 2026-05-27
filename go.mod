@@ -1,6 +1,6 @@
 module github.com/IBM/secret-utils-lib
 
-go 1.25.9
+go 1.25.10
 
 require (
 	github.com/BurntSushi/toml v1.0.0
