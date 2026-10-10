@@ -196,3 +196,150 @@ func GetTestLogger(t *testing.T) (logger *zap.Logger, teardown func()) {
 	}
 	return
 }
+
+func TestGetIAMURLFromStorageSecret(t *testing.T) {
+	logger, teardown := GetTestLogger(t)
+	defer teardown()
+
+	testcases := []struct {
+		testCaseName     string
+		secretDataPath   string
+		providerType     string
+		expectedIAMURL   string
+		expectedProvided bool
+		expectError      bool
+		errorDescription string
+	}{
+		{
+			testCaseName:     "VPC provider - valid g2_token_exchange_endpoint_url",
+			secretDataPath:   "test-fixtures/valid/vpc-gen2/prod/slclient.toml",
+			providerType:     utils.VPC,
+			expectedIAMURL:   "https://iam.bluemix.net",
+			expectedProvided: true,
+			expectError:      false,
+		},
+		{
+			testCaseName:     "Bluemix provider - valid iam_url",
+			secretDataPath:   "test-fixtures/valid/classic/prod/slclient.toml",
+			providerType:     utils.Bluemix,
+			expectedIAMURL:   "https://iam.cloud.ibm.com",
+			expectedProvided: true,
+			expectError:      false,
+		},
+		{
+			testCaseName:     "Softlayer provider - with softlayer_iam_endpoint_url",
+			secretDataPath:   "test-fixtures/valid/softlayer-with-iam-url/slclient.toml",
+			providerType:     utils.Softlayer,
+			expectedIAMURL:   "https://api.service.softlayer.com/mobile/v3",
+			expectedProvided: true,
+			expectError:      false,
+		},
+		{
+			testCaseName:     "Softlayer provider - fallback to iam_url",
+			secretDataPath:   "test-fixtures/valid/softlayer-fallback/slclient.toml",
+			providerType:     utils.Softlayer,
+			expectedIAMURL:   "https://iam.test.cloud.ibm.com",
+			expectedProvided: true,
+			expectError:      false,
+		},
+		{
+			testCaseName:     "Invalid provider type",
+			secretDataPath:   "test-fixtures/valid/slclient.toml",
+			providerType:     "invalid",
+			expectedIAMURL:   "",
+			expectedProvided: false,
+			expectError:      true,
+			errorDescription: utils.ErrInvalidProviderTypeForIAMURL,
+		},
+		{
+			testCaseName:     "Missing IAM URL for VPC provider",
+			secretDataPath:   "test-fixtures/invalid/missing-iam-url/slclient.toml",
+			providerType:     utils.VPC,
+			expectedIAMURL:   "",
+			expectedProvided: false,
+			expectError:      true,
+			errorDescription: utils.ErrIAMURLNotFound,
+		},
+		{
+			testCaseName:     "Missing IAM URL for Bluemix provider",
+			secretDataPath:   "test-fixtures/invalid/missing-iam-url/slclient.toml",
+			providerType:     utils.Bluemix,
+			expectedIAMURL:   "",
+			expectedProvided: false,
+			expectError:      true,
+			errorDescription: utils.ErrIAMURLNotFound,
+		},
+		{
+			testCaseName:     "Missing IAM URL for Softlayer provider (no fallback)",
+			secretDataPath:   "test-fixtures/invalid/missing-iam-url/slclient.toml",
+			providerType:     utils.Softlayer,
+			expectedIAMURL:   "",
+			expectedProvided: false,
+			expectError:      true,
+			errorDescription: utils.ErrIAMURLNotFound,
+		},
+		{
+			testCaseName:     "Invalid TOML format",
+			secretDataPath:   "test-fixtures/invalid/slclient.toml",
+			providerType:     utils.Bluemix,
+			expectedIAMURL:   "",
+			expectedProvided: false,
+			expectError:      true,
+			errorDescription: utils.ErrParsingConfig,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.testCaseName, func(t *testing.T) {
+			pwd, err := os.Getwd()
+			if err != nil {
+				t.Errorf("Failed to get current working directory, error: %v", err)
+			}
+
+			secretfilePath := filepath.Join(pwd, "..", "..", testcase.secretDataPath)
+			k8sClient, _ := k8s_utils.FakeGetk8sClientSet()
+			err = k8s_utils.FakeCreateSecret(k8sClient, utils.DEFAULT, secretfilePath)
+			if err != nil {
+				t.Errorf("Failed to create secret, error: %v", err)
+			}
+
+			returnedURL, provided, err := GetIAMURLFromStorageSecret(k8sClient, testcase.providerType, logger)
+
+			if testcase.expectError {
+				assert.NotNil(t, err, "Expected error but got nil")
+				if err != nil {
+					utilsErr, ok := err.(utils.Error)
+					if ok && testcase.errorDescription != "" {
+						assert.Contains(t, utilsErr.Description, testcase.errorDescription,
+							"Error description mismatch")
+					}
+				}
+			} else {
+				assert.Nil(t, err, "Expected no error but got: %v", err)
+				assert.Equal(t, testcase.expectedIAMURL, returnedURL, "IAM URL mismatch")
+				assert.Equal(t, testcase.expectedProvided, provided, "userProvided flag mismatch")
+			}
+		})
+	}
+}
+
+func TestGetIAMURLFromStorageSecret_MissingSecret(t *testing.T) {
+	logger, teardown := GetTestLogger(t)
+	defer teardown()
+
+	// Create k8s client without creating the secret
+	k8sClient, _ := k8s_utils.FakeGetk8sClientSet()
+
+	// Try to get IAM URL when secret doesn't exist
+	returnedURL, provided, err := GetIAMURLFromStorageSecret(k8sClient, utils.Bluemix, logger)
+
+	assert.NotNil(t, err, "Expected error for missing secret")
+	assert.Equal(t, "", returnedURL, "Expected empty URL")
+	assert.Equal(t, false, provided, "Expected userProvided to be false")
+
+	utilsErr, ok := err.(utils.Error)
+	if ok {
+		assert.Contains(t, utilsErr.Description, utils.ErrReadingStorageSecretStore,
+			"Error should indicate storage-secret-store read failure")
+	}
+}

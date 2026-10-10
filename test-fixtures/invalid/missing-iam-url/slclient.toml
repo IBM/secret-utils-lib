@@ -1,0 +1,14 @@
+[Bluemix]
+  iam_client_id = "bx"
+  iam_client_secret = "bx"
+  iam_api_key = "aaaa"
+  refresh_token = ""
+  pay_tier = "paid"
+  containers_api_route = "https://us-south.containers.cloud.ibm.com"
+  encryption = true
+
+[VPC]
+  encryption = false
+
+[Softlayer]
+  encryption = true

@@ -180,3 +180,75 @@ func IsSatellite(cc ClusterConfig, logger *zap.Logger) bool {
 func GetIAASProvider(cc ClusterConfig) string {
 	return cc.ClusterType
 }
+
+// GetIAMURLFromStorageSecret reads IAM URL from storage-secret-store secret based on provider type
+// Provider types: "vpc", "bluemix", "softlayer"
+// Returns: (iamURL string, userProvided bool, error)
+func GetIAMURLFromStorageSecret(kc k8s_utils.KubernetesClient, providerType string, logger *zap.Logger) (string, bool, error) {
+	// Validate provider type
+	if providerType != utils.VPC && providerType != utils.Bluemix && providerType != utils.Softlayer {
+		logger.Error("Invalid provider type", zap.String("providerType", providerType))
+		return "", false, utils.Error{Description: utils.ErrInvalidProviderTypeForIAMURL}
+	}
+
+	// Read slclient.toml from storage-secret-store secret using helper function
+	slclientData, err := k8s_utils.GetSecretData(kc, utils.STORAGE_SECRET_STORE_SECRET, utils.SECRET_STORE_FILE)
+	if err != nil {
+		logger.Error("Error reading storage-secret-store secret", zap.Error(err))
+		return "", false, utils.Error{Description: utils.ErrReadingStorageSecretStore, BackendError: err.Error()}
+	}
+
+	// Parse TOML configuration
+	config, err := ParseConfig(logger, slclientData)
+	if err != nil {
+		logger.Error("Error parsing slclient.toml", zap.Error(err))
+		return "", false, err
+	}
+
+	// Extract IAM URL based on provider type
+	var iamURL string
+	var userProvided bool
+
+	switch providerType {
+	case utils.VPC:
+		// For VPC provider, read g2_token_exchange_endpoint_url from [VPC] section
+		if config.VPC != nil && config.VPC.G2TokenExchangeURL != "" {
+			iamURL = config.VPC.G2TokenExchangeURL
+			userProvided = true
+			logger.Info("IAM URL found for VPC provider", zap.String("iamURL", iamURL))
+		} else {
+			logger.Error("IAM URL not found for VPC provider in storage-secret-store")
+			return "", false, utils.Error{Description: utils.ErrIAMURLNotFound}
+		}
+
+	case utils.Bluemix:
+		// For Bluemix provider, read iam_url from [Bluemix] section
+		if config.Bluemix != nil && config.Bluemix.IamURL != "" {
+			iamURL = config.Bluemix.IamURL
+			userProvided = true
+			logger.Info("IAM URL found for Bluemix provider", zap.String("iamURL", iamURL))
+		} else {
+			logger.Error("IAM URL not found for Bluemix provider in storage-secret-store")
+			return "", false, utils.Error{Description: utils.ErrIAMURLNotFound}
+		}
+
+	case utils.Softlayer:
+		// For Softlayer provider, read softlayer_iam_endpoint_url from [Softlayer] section
+		// Fallback to iam_url from [Bluemix] section if softlayer_iam_endpoint_url not present
+		if config.Softlayer != nil && config.Softlayer.SoftlayerIMSEndpointURL != "" {
+			iamURL = config.Softlayer.SoftlayerIMSEndpointURL
+			userProvided = true
+			logger.Info("IAM URL found for Softlayer provider (softlayer_iam_endpoint_url)", zap.String("iamURL", iamURL))
+		} else if config.Bluemix != nil && config.Bluemix.IamURL != "" {
+			// Fallback to Bluemix iam_url
+			iamURL = config.Bluemix.IamURL
+			userProvided = true
+			logger.Info("IAM URL found for Softlayer provider (fallback to iam_url)", zap.String("iamURL", iamURL))
+		} else {
+			logger.Error("IAM URL not found for Softlayer provider in storage-secret-store")
+			return "", false, utils.Error{Description: utils.ErrIAMURLNotFound}
+		}
+	}
+
+	return iamURL, userProvided, nil
+}
