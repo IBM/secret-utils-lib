@@ -73,7 +73,7 @@ func clientForExtraKeySTS(logger *zap.Logger, cwd string) {
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To get token and token lifetime
 	fmt.Println(authenticator.GetToken(false))
 }
@@ -98,7 +98,7 @@ func clientForExtraKeyICCPodIdentity(logger *zap.Logger, cwd string) {
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To get token and token lifetime
 	fmt.Println(authenticator.GetToken(false))
 }
@@ -123,7 +123,7 @@ func clientForExtraKeyICCIAM(logger *zap.Logger, cwd string) {
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To get token and token lifetime
 	fmt.Println(authenticator.GetToken(false))
 }
@@ -148,7 +148,7 @@ func clientForDefaultAuthenticator(logger *zap.Logger, providerType, cwd string)
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To get token and token lifetime
 	fmt.Println(authenticator.GetToken(false))
 }
@@ -170,7 +170,7 @@ func clientForIAMAuthenticator(logger *zap.Logger, cwd string) {
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To set a different secret
 	//authenticator.SetSecret("")
 	// To get token and token lifetime
@@ -194,7 +194,7 @@ func clientForPodIdentityAuthenticator(logger *zap.Logger, cwd string) {
 
 	fmt.Println(auth_type)
 	// To get the associated secret - (apikey/trusted-profile)
-	fmt.Println(authenticator.GetSecret())
+	fmt.Println("secret is set")
 	// To set a different secret
 	//authenticator.SetSecret("")
 	// To get token and token lifetime
